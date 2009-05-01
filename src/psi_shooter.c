@@ -7,5 +7,6 @@
  * PsiShooter program entry point
  */
 int main(int argc, char **argv) {
-	printf("Hello world.\n");
+	printf("PsiShooter -- a shooting method solver for the time independant Schrodinger equation under the effective mass approximation.\n");
+	
 }
