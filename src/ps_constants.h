@@ -12,7 +12,7 @@
 
 
 m_e = 5.6856269e-13; //meV s^2 cm^-2, electron mass
-//h = 	
+h = 4.1356668e-12; // meV s, Planck's Constant
 //h_bar = 
 //h -- Planck's constant
 //h_bar -- reduced Planck's constant, h_bar = h/(2*pi)
