@@ -1,13 +1,23 @@
 #ifndef PS_CONSTANTS_H
 #define PS_CONSTANTS_H
 /**
- *  This header file defines necessary constants for use in the code
- * All constants are defined in terms of the natural units of the code.
- * energy = electron volts
- * length = nanometers
- * time = seconds
- * mass is thus defined as [eV s^2 nm^-2]
+ * This header file defines necessary physical constants
+ *
+ * All constants are defined in terms of the following units:
+ * Energy		meV, milli electron volts
+ * Length		cm, centimeters
+ * Time			s, seconds
+ * Mass			?, is thus defined as [meV s^2 cm^-2]
  */ 
+
+
+m_e = 5.6856269e-13; //meV s^2 cm^-2, electron mass
+//h = 	
+//h_bar = 
+//h -- Planck's constant
+//h_bar -- reduced Planck's constant, h_bar = h/(2*pi)
+
+
 
 
 
