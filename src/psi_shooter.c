@@ -13,14 +13,6 @@
  */
 
 /**
- * PsiShooter program entry point
- */
-int main(int argc, char **argv) {
-	return 0;
-}
-
-
-/**
  * Solve for the bound energies given by the potential. 
  * energies is a buffer of energies to test.
  * bound_energies is where the actual bound energies will be stored.  It should be the same size as energies.
@@ -159,7 +151,7 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
     double F_threshold = 0;
 
 	// wavefunction storage.  
-	int N = potential->xsize + 2;
+	int N = potential->xsize;
 	int N_threshold = N/2;
 	double dx = potential->xstep;
 	double F[N]; 
@@ -177,7 +169,7 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
         F[0] = 0;
         G[0] = 1;
         for(i=0; i<N-1; i++) {
-			err = ps_data_value_at_row_column(potential, 0, i, &V);
+			err = ps_data_value_at_row_column(potential, 1, i, &V);
 			if (PS_OK != err) {
 				printf("BADNESS.\n");
 				goto END;
@@ -291,7 +283,7 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
  * something I intend to use in order to do some useful solver engine work 
  * while the generation of potentials from files/user input is up in air.
  */
- PS_DATA test_potential_1D() {
+ void test_potential_1D() {
  	
 	/*    
 	 * Lets define a single well as a test case for the BV/shooter method
@@ -309,15 +301,49 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
 	 * Region:      1      2     3  
 	 */
 	 
- 	PS_DATA V;
- 	
-	// V.xsize = 1000;
- 	//typedef struct {
-	//unsigned int xsize;
-	//unsigned int ysize;
-	//double xstep;
-	//double ystep;
-	//double **data;
-//} 
+	double xstep = 0.0000001;	 // nm
+	double ystep = 1; // no y data yet
+	int xsize = 100; // 100nm total
+	int ysize = 1; // only one row
+	int i;
+
+	double Vb = 0.1; // Undefined units. Just for compilation testing.
+	
+ 	PS_DATA potential = ps_create_data(xsize, ysize, xstep, ystep);
+	for (i = 0; i < xsize; i++) {
+		// Define well in middle 20nm
+		if (i > 40 || i < 60) {
+			ps_data_set_value_at_row_column(potential, 1, i, 0);
+		} else {
+			ps_data_set_value_at_row_column(potential, 1, i, Vb);
+		}
+	}
+
+
+	// Initialize an array of energies to test
+	int n_energies = 1000;
+	double energies[n_energies];
+	double bound_energies[n_energies];
+	
+	double e_start = 0.001;
+	double e_step = 0.001;
+	for (i = 0; i < n_energies; i++) {
+		energies[i] = e_start + i*e_step;
+	}
+	
+	// Solve
+	int nfound = ps_solve(potential, energies, bound_energies, n_energies);
+	printf("Found %i Bound Energies. Have a nice day!\n", nfound);
+	
+	ps_destroy_data(potential);
  	
  }
+
+
+/**
+ * PsiShooter program entry point
+ */
+int main(int argc, char **argv) {
+	test_potential_1D();
+}
+
