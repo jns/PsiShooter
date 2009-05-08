@@ -3,6 +3,15 @@
 #include "ps_errors.h"
 #include "ps_data.h"
 
+/*The Big To Do list:
+ * Consider the supporting the simplifying case where m_eff(x,y) -> m_eff   (constant effective mass)
+ *     Why? ... one effective mass for the entire system, this should cut out a bunch of derivatives that need to be calculated
+ *     For many potentials electrons don't "see" much of the barriers compared to the wells, so m_eff(x,y) ~= m_eff_well_material 
+ *     Maybe only support this case, it has a bunch less terms when you expand out the TISE with fintite differencing 
+ *     note: A position dependant mass fucks up the hermicity of H (hamiltonian operator)
+ */
+
+
 /**
  * PsiShooter program entry point
  */
@@ -20,20 +29,74 @@ int main(int argc, char **argv) {
 	////////////////////////
     //Solving the 1D TISE://
     ////////////////////////
-    //The hamiltonian is: H = T + V = p^2/(2m) + V  ... where p is the momentum operator
-    //moving to the effective mass regime we no longer solve for the wavefunction
-    //but instead we get an envelope function. Careful consideration also shows that 
-    //if m -> m(x) then simple subsitution causes H to become non-Hermitian. 
-    //Fortunately that can be worked around, the result is (apparently):
-    //(1) T * F = -h_bar^2/2 * Del * ( m_eff(x,E)^-1 * Del * F )
-	//     note: F is the envelope function. ... taking the role of Psi
+	//
+	//(0)    H * Psi = E * Psi
+	//
+	//E is the eignenvalue
+    //H is the hamiltonian operator: H = T + V = p^2/(2m) + V  
+	//    ... where p is the momentum operator, p = h/i * Div
+    //
+	//Moving to the effective mass regime we no longer solve for the wavefunction
+    //but instead we sove for an envelope function. Careful consideration shows that 
+    //if mass is allowed to vary with positon, m -> m(x), then simple subsitution of 
+	//m(x) for m in H causes H to become non-Hermitian. 
+    //Fortunately that can be worked around, the result is:
+    //
+	//(1)    T * F = -h_bar^2/2 * Div * ( m_eff(x,y,E)^-1 * Div * F )
+	//           ...note: F is the envelope function that is replacing the role of Psi
     // 
     //Put it all together to get the effective mass equation that we are going to
     //use:
-    //
-    //(2) -h_bar^2/2 * Del * (m_eff * Del * F) + V * F = E * F   
-    //   ... take the 1D direction to be x, then Del = d/dx
-    //   ... finite diff. version of deriative: dF/dx = (F[x+dx]-F[x-dx]) / (2dx)    
+    //    +--------------------------------------------------------------+                               
+	//(2) |    -h_bar^2/2 * Div * (1/m_eff * Div * F) + V * F = E * F    |  
+	//    +--------------------------------------------------------------+----> This is the main equation
+	//
+	//Rearranging (2):
+	//(3)    Div * (M * Div * F) = 2*(V-E)*F/h_bar^2
+    //           ... note: Let 1/m_eff(x,y,E) = M  (For compactness of these notes only, it is still the effective mass that is position dependant)
+	//take the coordinate system to be cartesisian and Div becomes: Div = d/dx + d/dy   -->   Div*F = dF/dx + dF/dy
+	//(4)    Div * { M(dF/dx) + M(dF/dy) } = 2*(V-E)*F/h_bar^2
+	//  
+	//The LHS of (4) has a (2D) divergance of 2 terms that each have a product of two functions (M, dF), both of which depend on x and y. 
+	//The chain rule will get invoked and there will be quite a few terms after we expand this
+	//(5)    Div*(M(dF/dx)) + Div*(M(dF/dy)) = ...     ...note: I am leaving off the RHS for awhile
+	//(6)    (d/dx + d/dy)*(M(dF/dx)) + (d/dx + d/dy)*(M(dF/dy)) = ...
+	//(7)    (d/dx)*(M(dF/dx)) + (d/dy)*(M(dF/dx)) + (d/dx)*(M(dF/dy)) + (d/dy)*(M(dF/dy))= ...
+	//(8)    (M)(d^2F/dx^2) + (dF/dx)(dM/dx)  + (M)(d^2F/(dxdy)) + (dF/dx)(dM/dy) + (M)(d^2F/(dydx)) + (dF/dy)(dM/dx) + (M)(d^2F/dy^2) + (dF/dy)(dM/dy) = ...
+	//(9)    (M)(d^2F/dx^2) + (M)(d^2F/dy^2) + 2(M)(d^2F/(dxdy)) + (dF/dx)(dM/dx) + (dF/dx)(dM/dy) + (dF/dy)(dM/dx) + (dF/dy)(dM/dy) = ...
+	//
+	//The next step is to expand (9) out in terms of finite differences, here are some pieces that will be used:
+	//(10)   dF/dx = (F[x+dx]-F[x-dx])/(2dx)
+	//(11)   d^2F/dx^2 = ((F[x+dx+dx]-F[x+dx-dx])/(2dx) - (F[x-dx+dx]-F[x-dx-dx])/(2dx)) / (2dx)
+	//                 = (F[x+2dx] - 2F[x] + F[x-2dx])*(2dx)^-2
+	//(12)   d^2F/(dxdy) = (d/dy) * dF/dx
+	//                   = (d/dy) * (F[x+dx]-F[x-dx])/(2dx)
+	//                   = ((F[x+dx,y+dy]-F[x-dx,y+dy])/(2dx) - (F[x+dx,y-dy]-F[x-dx,y-dy])/(2dx)) / (2dy)
+	//                   = ((F[x+dx,y+dy]-F[x-dx,y+dy]) - (F[x+dx,y-dy]-F[x-dx,y-dy])) / (2dx2dy)
+	//
+	//Using the finite differencing versions (10)-(12) of the derivatives in (9) and making M & F explcit functions of x & y: 
+	//(9)    (M)(d^2F/dx^2) +         --> (13)    M[x,y] * (F[x+2dx,y] - 2F[x,y] + F[x-2dx,y])*(2dx)^-2 +  
+	//       (M)(d^2F/dy^2) +         -->         M[x,y] * (F[x,y+2dy] - 2F[x,y] + F[x,y-2dy])*(2dy)^-2 + 
+	//       2(M)(d^2F/(dxdy)) +      -->         2*M[x,y] * ((F[x+dx,y+dy]-F[x-dx,y+dy])-(F[x+dx,y-dy]-F[x-dx,y-dy]))/(2dx2dy) +
+	//       (dF/dx)(dM/dx) +         -->         (F[x+dx,y]-F[x-dx,y])/(2dx) * (M[x+dx,y]-M[x-dx,y])/(2dx) + 
+	//       (dF/dx)(dM/dy) +         -->         (F[x+dx,y]-F[x-dx,y])/(2dx) * (M[x,y+dy]-M[x,y-dy])/(2dy) +
+	//       (dF/dy)(dM/dx) +         -->         (F[x,y+dy]-F[x,y-dy])/(2dy) * (M[x+dx,y]-M[x-dx,y])/(2dx) +
+	//       (dF/dy)(dM/dy) = ...     -->         (F[x,y+dy]-F[x,y-dy])/(2dy) * (M[x,y+dy]-M[x,y-dy])/(2dy) = 2*(V[x,y]-E)*F[x,y]/h_bar^2
+ 
+	//The form in (13) can be rearranged so that you can use the shooting method. 
+	//Instead of proceeding directly with that we are going to first write the 
+	//orginal 2nd order differential equation (3) as a system of coupled ODEs
+	//(3)    Div * (M * Div * F) = 2*(V-E)*F/h_bar^2
+	//
+    //Let:  
+	//(14)    G = (M) * Div * F
+	//Then (3) becomes:
+	//(15)   Div * G = 2*(V-E)*F/h_bar^2
+	//
+	//Rearranging (14) slightly:
+	//(16)   Div*F = G / M
+	//(17)   Div*G = F * 2*(V-E)/h_bar^2
+	
     //(3) Del * (m_eff * (F[x+dx]-F[x-dx])/(2dx)) = 2*(V-E)*F / h_bar^2
     //(4) F[x+2dx]/m_eff[x+dx] = (2*(2dx/h_bar)^2*(V-E) + 1/m_eff[x+dx] + 1/m,_eff[x-dx])*F - F[x-2dx]/m_eff[x-dx]
     // 
