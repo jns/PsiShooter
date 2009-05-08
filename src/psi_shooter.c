@@ -9,7 +9,23 @@
 int main(int argc, char **argv) {
 	printf("PsiShooter -- a shooting method solver for the time independant Schrodinger equation under the effective mass approximation.\n");
 	
+	char LOG_FILENAME_V[] = "V.dat"; //Output file for the potential energy profile, V(x)
+    char LOG_FILENAME_x[] = "x.dat"; //Output file for the indeptendant variable, x
+    char LOG_FILENAME_F[] = "F.dat"; //Output file for the envelope function (wavefunction)
+    char LOG_FILENAME_G[] = "G.dat"; //Output file for the auxillary function coupled to F
+    char LOG_FILENAME_BS[] = "BS.dat"; //Output file for the envelope function (wavefunction) of bound states
+    char LOG_FILENAME_E[] = "E.dat"; //Output file for the eigenvalues corresponding to bound states
+    
+
+	
+	
+	return 0;
 }
+
+
+
+
+
 
 /**
  * Generates a test potential. Not really a permenant feature, but rather its 
@@ -38,14 +54,14 @@ int main(int argc, char **argv) {
 	 
  	PS_DATA V;
  	
- 	V.xsize
- 	typedef struct {
-	unsigned int xsize;
-	unsigned int ysize;
-	double xstep;
-	double ystep;
-	double **data;
-} 
+	// V.xsize = 1000;
+ 	//typedef struct {
+	//unsigned int xsize;
+	//unsigned int ysize;
+	//double xstep;
+	//double ystep;
+	//double **data;
+//} 
 
  	
  }
