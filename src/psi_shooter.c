@@ -2,6 +2,7 @@
 #include "ps_constants.h"
 #include "ps_errors.h"
 #include "ps_data.h"
+#include "math.h"
 
 /*The Big To Do list:
  * Consider the supporting the simplifying case where m_eff(x,y) -> m_eff   (constant effective mass)
@@ -11,11 +12,23 @@
  *     note: A position dependant mass fucks up the hermicity of H (hamiltonian operator)
  */
 
-
 /**
  * PsiShooter program entry point
  */
 int main(int argc, char **argv) {
+	return 0;
+}
+
+
+/**
+ * Solve for the bound energies given by the potential. 
+ * energies is a buffer of energies to test.
+ * bound_energies is where the actual bound energies will be stored.  It should be the same size as energies.
+ * both buffers should be of size buf_size.
+ * returns the number of bound energies found, 0 or negative for error
+ */
+int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int buf_size) {
+
 	printf("PsiShooter -- a shooting method solver for the time independant Schrodinger equation under the effective mass approximation.\n");
 	
 	char LOG_FILENAME_V[] = "V.dat"; //Output file for the potential energy profile, V(x)
@@ -136,23 +149,41 @@ int main(int argc, char **argv) {
     // finite wells
     
     printf("Iterate through Energy Eigenvalues to find the lowest bound state.\n");      
-    printf("\tGround state for the inf square well of the same width, E1=%g eV\n", E1_infsqwell);
-    double E = E1_infsqwell;   
-    int bound_state_count = 0;
-	
+//    printf("\tGround state for the inf square well of the same width, E1=%g eV\n", E1_infsqwell);
+
+	int i;
+	double E; // Current energy
+	int E_index; // Current index in energies
+    int bound_state_count = 0;	
     int threshold_set_flag = 0; 
     double F_threshold = 0;
+
+	// wavefunction storage.  
+	int N = potential->xsize + 2;
+	int N_threshold = N/2;
+	double dx = potential->xstep;
+	double F[N]; 
+	double G[N];
+	double F_coeff = dx;//*MASS_ELECTRON; //handy prefactor that would otherwise be computed N times in the following loop for F[i+1]
+	double G_coeff = 2*dx;///(HBAR_PLANCK*HBAR_PLANCK); //handy prefactor that would otherwise be computed N times in the following loop for G[i+1]       
+	double V;
+	int err;
 	
-    while(E > 0) {
+	for(E_index = 0; E_index < buf_size; E_index++) {
+
+		E = energies[E_index];
         printf("\tE=%g eV\n", E);
         
         F[0] = 0;
         G[0] = 1;
-        double F_coeff = dx*MASS_ELECTRON; //handy prefactor that would otherwise be computed N times in the following loop for F[i+1]
-        double G_coeff = 2*dx/(HBAR_PLANCK*HBAR_PLANCK); //handy prefactor that would otherwise be computed N times in the following loop for G[i+1]       
         for(i=0; i<N-1; i++) {
+			err = ps_data_value_at_row_column(potential, 0, i, &V);
+			if (PS_OK != err) {
+				printf("BADNESS.\n");
+				goto END;
+			}
             F[i+1] = F[i] + F_coeff*G[i]; // (9) F[x+dx] = F[x] + dx*m_eff[x]*G[x]
-            G[i+1] = G[i] + G_coeff*(V[i]-E)*F[i]; //(10) G[x+dx] = G[x] + 2dx/h_bar^2*(V-E)*F[x]                
+            G[i+1] = G[i] + G_coeff*(V-E)*F[i]; //(10) G[x+dx] = G[x] + 2dx/h_bar^2*(V-E)*F[x]                
         }
         
         printf("\tF[N-1]=%e\n", F[N-1]);
@@ -169,7 +200,7 @@ int main(int argc, char **argv) {
 		
         if(fabs(F[N-1]) < F_threshold) {
             //print the energy and the WFN envelope to a file 
-            bound_state_count++;
+			bound_energies[bound_state_count++] = E;
             printf("\t\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e printing to log file, %s \n", bound_state_count, E, F[N], F_threshold, LOG_FILENAME_BS);
             
             FILE *pFile_E;
@@ -196,10 +227,7 @@ int main(int argc, char **argv) {
             }
         }
         
-        //progress to the next eigenstate (enegry) for the next time through the shooter loop
-        E = E - dE;
-        
-		//Output log files
+		//Output printf files
         //print F[i] to log
         //print G[i] to log
 		
@@ -211,7 +239,7 @@ int main(int argc, char **argv) {
             setbuf(pFile_F, buffer_F);
             //fputs("#Output of F",pFile_F);
             for(i=0; i<N; i++) {
-                fprintf(pFile_F, "%e\t%e\n", x[i], F[i]);
+                fprintf(pFile_F, "%e\t%e\n", i*dx, F[i]);
             }            
             fclose(pFile_F); //fflush(pFile1); //closing flushes already
         }
@@ -224,7 +252,7 @@ int main(int argc, char **argv) {
             setbuf(pFile_G, buffer_G);
             //fputs("#Output of G",pFile_G);
             for(i=0; i<N; i++) {
-                fprintf(pFile_G, "%e\t%e\n", x[i], G[i]);
+                fprintf(pFile_G, "%e\t%e\n", i*dx, G[i]);
             }            
             fclose(pFile_G); //fflush(pFile1); //closing flushes already
         }
@@ -246,16 +274,11 @@ int main(int argc, char **argv) {
     //double x[N];
     
 	/**/       
+
+	END:
+    	
 	
-    
-    //cleanup
-    free(x);
-    free(V);
-    free(F);
-    free(G);
-	
-	
-	return 0;
+	return bound_state_count;
 }
 
 
