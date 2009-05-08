@@ -1,6 +1,8 @@
 #ifndef PS_DATA_H
 #define PS_DATA_H
 
+#include "ps_errors.h"
+
 /** 
  * Definition of 2-dimensional numerical data structure.
  **/
@@ -9,7 +11,7 @@ typedef struct {
 	unsigned int ysize;
 	double xstep;
 	double ystep;
-	double **data;
+	double *data;
 } PS_DATA_T;
 
 typedef PS_DATA_T* PS_DATA;
@@ -26,7 +28,7 @@ int ps_data_columns(PS_DATA data);
  * Initialize the data from a two-dimensional array of the correct size. 
  * Returns 0 upon success, error otherwise.
 */
-int ps_data_init_with_array(PS_DATA data, double **values);
+int ps_data_init_with_array(PS_DATA data, double *values, int nrows, int ncols);
 
 /**
  * Set the value at a particular row/column

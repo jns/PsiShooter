@@ -36,16 +36,14 @@ int main(int argc, char **argv) {
 	 
 	 
 	 
- 	PS_DATA V;
- 	
- 	V.xsize
- 	typedef struct {
-	unsigned int xsize;
-	unsigned int ysize;
-	double xstep;
-	double ystep;
-	double **data;
-} 
-
+	//  	PS_DATA V;
+	//  	
+	//  	V.xsize
+	//  	typedef struct {
+	// unsigned int xsize;
+	// unsigned int ysize;
+	// double xstep;
+	// double ystep;
+	// double **data;
  	
  }
