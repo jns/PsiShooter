@@ -148,8 +148,8 @@ int main(int argc, char **argv) {
         
         F[0] = 0;
         G[0] = 1;
-        double F_coeff = dx*m_eff; //handy prefactor that would otherwise be computed N times in the following loop for F[i+1]
-        double G_coeff = 2*dx/(hbar*hbar); //handy prefactor that would otherwise be computed N times in the following loop for G[i+1]       
+        double F_coeff = dx*MASS_ELECTRON; //handy prefactor that would otherwise be computed N times in the following loop for F[i+1]
+        double G_coeff = 2*dx/(HBAR_PLANCK*HBAR_PLANCK); //handy prefactor that would otherwise be computed N times in the following loop for G[i+1]       
         for(i=0; i<N-1; i++) {
             F[i+1] = F[i] + F_coeff*G[i]; // (9) F[x+dx] = F[x] + dx*m_eff[x]*G[x]
             G[i+1] = G[i] + G_coeff*(V[i]-E)*F[i]; //(10) G[x+dx] = G[x] + 2dx/h_bar^2*(V-E)*F[x]                
