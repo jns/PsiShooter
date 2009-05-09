@@ -53,12 +53,12 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
     //Put it all together to get the effective mass equation that we are going to
     //use:
     //    +--------------------------------------------------------------+                               
-	//(2) |    -h_bar^2/2 * Div * (1/m_eff * Div * F) + V * F = E * F    |  
-	//    +--------------------------------------------------------------+----> This is the main equation
-	//
-	//Rearranging (2):
-	//(3)    Div * (M * Div * F) = 2*(V-E)*F/h_bar^2
-    //           ... note: Let 1/m_eff(x,y,E) = M  (For compactness of these notes only, it is still the effective mass that is position dependant)
+//(2) |    -h_bar^2/2 * Div * (1/m_eff * Div * F) + V * F = E * F    |  
+//    +--------------------------------------------------------------+----> This is the main equation
+//
+//Rearranging (2):
+//(3)    Div * (M * Div * F) = 2*(V-E)*F/h_bar^2
+//           ... note: Let 1/m_eff(x,y,E) = M  (For compactness of these notes only, it is still the effective mass that is position dependant)
 	//take the coordinate system to be cartesisian and Div becomes: Div = d/dx + d/dy   -->   Div*F = dF/dx + dF/dy
 	//(4)    Div * { M(dF/dx) + M(dF/dy) } = 2*(V-E)*F/h_bar^2
 	//  
