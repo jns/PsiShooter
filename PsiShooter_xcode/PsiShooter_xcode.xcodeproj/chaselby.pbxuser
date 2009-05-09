@@ -40,7 +40,7 @@
 				PBXFileTableDataSourceColumnSortingKey = PBXFileDataSource_Filename_ColumnID;
 				PBXFileTableDataSourceColumnWidthsKey = (
 					20,
-					301,
+					514,
 					60,
 					20,
 					48,
@@ -64,6 +64,8 @@
 			3DF2EA8E0FB62B22003B6483 /* PBXTextBookmark */ = 3DF2EA8E0FB62B22003B6483 /* PBXTextBookmark */;
 			3DF2EA8F0FB62B22003B6483 /* PBXTextBookmark */ = 3DF2EA8F0FB62B22003B6483 /* PBXTextBookmark */;
 			3DF2EA9C0FB62B2F003B6483 /* PBXTextBookmark */ = 3DF2EA9C0FB62B2F003B6483 /* PBXTextBookmark */;
+			3DF2EAA00FB62D9C003B6483 /* PBXTextBookmark */ = 3DF2EAA00FB62D9C003B6483 /* PBXTextBookmark */;
+			3DF2EAA30FB62DF8003B6483 /* PBXTextBookmark */ = 3DF2EAA30FB62DF8003B6483 /* PBXTextBookmark */;
 		};
 		sourceControlManager = 3DF2EA720FB62AAD003B6483 /* Source Control */;
 		userBuildSettings = {
@@ -83,8 +85,8 @@
 	3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */ = {
 		uiCtxt = {
 			sepNavIntBoundsRect = "{{0, 0}, {1200, 4928}}";
-			sepNavSelRange = "{15163, 0}";
-			sepNavVisRange = "{14867, 299}";
+			sepNavSelRange = "{5406, 0}";
+			sepNavVisRange = "{3442, 2791}";
 		};
 	};
 	3DF2EA7F0FB62AF5003B6483 /* PsiShooter_xcode */ = {
@@ -142,9 +144,29 @@
 		fRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */;
 		name = "psi_shooter.c: 349";
 		rLen = 0;
-		rLoc = 15163;
+		rLoc = 15114;
 		rType = 0;
 		vrLen = 299;
 		vrLoc = 14867;
+	};
+	3DF2EAA00FB62D9C003B6483 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */;
+		name = "psi_shooter.c: 88";
+		rLen = 0;
+		rLoc = 5406;
+		rType = 0;
+		vrLen = 2791;
+		vrLoc = 3442;
+	};
+	3DF2EAA30FB62DF8003B6483 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */;
+		name = "psi_shooter.c: 88";
+		rLen = 0;
+		rLoc = 5406;
+		rType = 0;
+		vrLen = 2791;
+		vrLoc = 3442;
 	};
 }

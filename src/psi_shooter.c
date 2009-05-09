@@ -32,113 +32,113 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
     
 
 	////////////////////////
-    //Solving the 1D TISE://
-    ////////////////////////
+	//Solving the 1D TISE //
+	////////////////////////
 	//
 	//(0)    H * Psi = E * Psi
 	//
 	//E is the eignenvalue
-    //H is the hamiltonian operator: H = T + V = p^2/(2m) + V  
+	//H is the hamiltonian operator: H = T + V = p^2/(2m) + V  
 	//    ... where p is the momentum operator, p = h/i * Div
-    //
+	//
 	//Moving to the effective mass regime we no longer solve for the wavefunction
-    //but instead we sove for an envelope function. Careful consideration shows that 
-    //if mass is allowed to vary with positon, m -> m(x), then simple subsitution of 
+	//but instead we sove for an envelope function. Careful consideration shows that 
+	//if mass is allowed to vary with positon, m -> m(x), then simple subsitution of 
 	//m(x) for m in H causes H to become non-Hermitian. 
-    //Fortunately that can be worked around, the result is:
-    //
+	//Fortunately that can be worked around, the result is:
+	//
 	//(1)    T * F = -h_bar^2/2 * Div * ( m_eff(x,y,E)^-1 * Div * F )
 	//           ...note: F is the envelope function that is replacing the role of Psi
-    // 
-    //Put it all together to get the effective mass equation that we are going to
-    //use:
-    //    +--------------------------------------------------------------+                               
-//(2) |    -h_bar^2/2 * Div * (1/m_eff * Div * F) + V * F = E * F    |  
-//    +--------------------------------------------------------------+----> This is the main equation
-//
-//Rearranging (2):
-//(3)    Div * (M * Div * F) = 2*(V-E)*F/h_bar^2
-//           ... note: Let 1/m_eff(x,y,E) = M  (For compactness of these notes only, it is still the effective mass that is position dependant)
-	//take the coordinate system to be cartesisian and Div becomes: Div = d/dx + d/dy   -->   Div*F = dF/dx + dF/dy
-	//(4)    Div * { M(dF/dx) + M(dF/dy) } = 2*(V-E)*F/h_bar^2
-	//  
-	//The LHS of (4) has a (2D) divergance of 2 terms that each have a product of two functions (M, dF), both of which depend on x and y. 
-	//The chain rule will get invoked and there will be quite a few terms after we expand this
-	//(5)    Div*(M(dF/dx)) + Div*(M(dF/dy)) = ...     ...note: I am leaving off the RHS for awhile
-	//(6)    (d/dx + d/dy)*(M(dF/dx)) + (d/dx + d/dy)*(M(dF/dy)) = ...
-	//(7)    (d/dx)*(M(dF/dx)) + (d/dy)*(M(dF/dx)) + (d/dx)*(M(dF/dy)) + (d/dy)*(M(dF/dy))= ...
-	//(8)    (M)(d^2F/dx^2) + (dF/dx)(dM/dx)  + (M)(d^2F/(dxdy)) + (dF/dx)(dM/dy) + (M)(d^2F/(dydx)) + (dF/dy)(dM/dx) + (M)(d^2F/dy^2) + (dF/dy)(dM/dy) = ...
-	//(9)    (M)(d^2F/dx^2) + (M)(d^2F/dy^2) + 2(M)(d^2F/(dxdy)) + (dF/dx)(dM/dx) + (dF/dx)(dM/dy) + (dF/dy)(dM/dx) + (dF/dy)(dM/dy) = ...
+	// 
+	//Put it all together to get the effective mass equation that we are going to
+	//use:
+	//    +--------------------------------------------------------------+                               
+	//(2) |    -h_bar^2/2 * Div * (1/m_eff * Div * F) + V * F = E * F    |  
+	//    +--------------------------------------------------------------+----> This is the main equation
 	//
-	//The next step is to expand (9) out in terms of finite differences, here are some pieces that will be used:
-	//(10)   dF/dx = (F[x+dx]-F[x-dx])/(2dx)
-	//(11)   d^2F/dx^2 = ((F[x+dx+dx]-F[x+dx-dx])/(2dx) - (F[x-dx+dx]-F[x-dx-dx])/(2dx)) / (2dx)
-	//                 = (F[x+2dx] - 2F[x] + F[x-2dx])*(2dx)^-2
-	//(12)   d^2F/(dxdy) = (d/dy) * dF/dx
-	//                   = (d/dy) * (F[x+dx]-F[x-dx])/(2dx)
-	//                   = ((F[x+dx,y+dy]-F[x-dx,y+dy])/(2dx) - (F[x+dx,y-dy]-F[x-dx,y-dy])/(2dx)) / (2dy)
-	//                   = ((F[x+dx,y+dy]-F[x-dx,y+dy]) - (F[x+dx,y-dy]-F[x-dx,y-dy])) / (2dx2dy)
+	//Note: Skip to equations (14) & (15) to see how we are going to proceed in the actual solver we are implenting.
 	//
-	//Using the finite differencing versions (10)-(12) of the derivatives in (9) and making M & F explcit functions of x & y: 
-	//(9)    (M)(d^2F/dx^2) +         --> (13)    M[x,y] * (F[x+2dx,y] - 2F[x,y] + F[x-2dx,y])*(2dx)^-2 +  
-	//       (M)(d^2F/dy^2) +         -->         M[x,y] * (F[x,y+2dy] - 2F[x,y] + F[x,y-2dy])*(2dy)^-2 + 
-	//       2(M)(d^2F/(dxdy)) +      -->         2*M[x,y] * ((F[x+dx,y+dy]-F[x-dx,y+dy])-(F[x+dx,y-dy]-F[x-dx,y-dy]))/(2dx2dy) +
-	//       (dF/dx)(dM/dx) +         -->         (F[x+dx,y]-F[x-dx,y])/(2dx) * (M[x+dx,y]-M[x-dx,y])/(2dx) + 
-	//       (dF/dx)(dM/dy) +         -->         (F[x+dx,y]-F[x-dx,y])/(2dx) * (M[x,y+dy]-M[x,y-dy])/(2dy) +
-	//       (dF/dy)(dM/dx) +         -->         (F[x,y+dy]-F[x,y-dy])/(2dy) * (M[x+dx,y]-M[x-dx,y])/(2dx) +
-	//       (dF/dy)(dM/dy) = ...     -->         (F[x,y+dy]-F[x,y-dy])/(2dy) * (M[x,y+dy]-M[x,y-dy])/(2dy) = 2*(V[x,y]-E)*F[x,y]/h_bar^2
- 
-	//The form in (13) can be rearranged so that you can use the shooting method. 
+		//Rearranging (2):
+		//(3)    Div * (M * Div * F) = 2*(V-E)*F/h_bar^2
+		//           ... note: Let 1/m_eff(x,y,E) = M  (For compactness of these notes only, it is still the effective mass that is position dependant)
+		//take the coordinate system to be cartesisian and Div becomes: Div = d/dx + d/dy   -->   Div*F = dF/dx + dF/dy
+		//(4)    Div * { M(dF/dx) + M(dF/dy) } = 2*(V-E)*F/h_bar^2
+		//  
+		//The LHS of (4) has a (2D) divergance of 2 terms that each have a product of two functions (M, dF), both of which depend on x and y. 
+		//The chain rule will get invoked and there will be quite a few terms after we expand this
+		//(5)    Div*(M(dF/dx)) + Div*(M(dF/dy)) = ...     ...note: I am leaving off the RHS for awhile
+		//(6)    (d/dx + d/dy)*(M(dF/dx)) + (d/dx + d/dy)*(M(dF/dy)) = ...
+		//(7)    (d/dx)*(M(dF/dx)) + (d/dy)*(M(dF/dx)) + (d/dx)*(M(dF/dy)) + (d/dy)*(M(dF/dy))= ...
+		//(8)    (M)(d^2F/dx^2) + (dF/dx)(dM/dx)  + (M)(d^2F/(dxdy)) + (dF/dx)(dM/dy) + (M)(d^2F/(dydx)) + (dF/dy)(dM/dx) + (M)(d^2F/dy^2) + (dF/dy)(dM/dy) = ...
+		//(9)    (M)(d^2F/dx^2) + (M)(d^2F/dy^2) + 2(M)(d^2F/(dxdy)) + (dF/dx)(dM/dx) + (dF/dx)(dM/dy) + (dF/dy)(dM/dx) + (dF/dy)(dM/dy) = ...
+		//
+		//The next step is to expand (9) out in terms of finite differences, here are some pieces that will be used:
+		//(10)   dF/dx = (F[x+dx]-F[x-dx])/(2dx)
+		//(11)   d^2F/dx^2 = ((F[x+dx+dx]-F[x+dx-dx])/(2dx) - (F[x-dx+dx]-F[x-dx-dx])/(2dx)) / (2dx)
+		//                 = (F[x+2dx] - 2F[x] + F[x-2dx])*(2dx)^-2
+		//(12)   d^2F/(dxdy) = (d/dy) * dF/dx
+		//                   = (d/dy) * (F[x+dx]-F[x-dx])/(2dx)
+		//                   = ((F[x+dx,y+dy]-F[x-dx,y+dy])/(2dx) - (F[x+dx,y-dy]-F[x-dx,y-dy])/(2dx)) / (2dy)
+		//                   = ((F[x+dx,y+dy]-F[x-dx,y+dy]) - (F[x+dx,y-dy]-F[x-dx,y-dy])) / (2dx2dy)
+		//
+		//Using the finite differencing versions (10)-(12) of the derivatives in (9) and making M & F explcit functions of x & y: 
+		//(9)    (M)(d^2F/dx^2) +         --> (13)    M[x,y] * (F[x+2dx,y] - 2F[x,y] + F[x-2dx,y])*(2dx)^-2 +  
+		//       (M)(d^2F/dy^2) +         -->         M[x,y] * (F[x,y+2dy] - 2F[x,y] + F[x,y-2dy])*(2dy)^-2 + 
+		//       2(M)(d^2F/(dxdy)) +      -->         2*M[x,y] * ((F[x+dx,y+dy]-F[x-dx,y+dy])-(F[x+dx,y-dy]-F[x-dx,y-dy]))/(2dx2dy) +
+		//       (dF/dx)(dM/dx) +         -->         (F[x+dx,y]-F[x-dx,y])/(2dx) * (M[x+dx,y]-M[x-dx,y])/(2dx) + 
+		//       (dF/dx)(dM/dy) +         -->         (F[x+dx,y]-F[x-dx,y])/(2dx) * (M[x,y+dy]-M[x,y-dy])/(2dy) +
+		//       (dF/dy)(dM/dx) +         -->         (F[x,y+dy]-F[x,y-dy])/(2dy) * (M[x+dx,y]-M[x-dx,y])/(2dx) +
+		//       (dF/dy)(dM/dy) = ...     -->         (F[x,y+dy]-F[x,y-dy])/(2dy) * (M[x,y+dy]-M[x,y-dy])/(2dy) = 2*(V[x,y]-E)*F[x,y]/h_bar^2
+		//
+		//The form in (13) can be rearranged so that you can use the shooting method. 
+	//
 	//Instead of proceeding directly with that we are going to first write the 
 	//orginal 2nd order differential equation (3) as a system of coupled ODEs
 	//(3)    Div * (M * Div * F) = 2*(V-E)*F/h_bar^2
 	//
-    //Let:  
+	//Let:  
 	//(14)    G = (M) * Div * F
 	//Then (3) becomes:
 	//(15)   Div * G = 2*(V-E)*F/h_bar^2
 	//
-	//Rearranging (14) slightly:
-	//(16)   Div*F = G / M
-	//(17)   Div*G = F * 2*(V-E)/h_bar^2
-	
-    //(3) Del * (m_eff * (F[x+dx]-F[x-dx])/(2dx)) = 2*(V-E)*F / h_bar^2
-    //(4) F[x+2dx]/m_eff[x+dx] = (2*(2dx/h_bar)^2*(V-E) + 1/m_eff[x+dx] + 1/m,_eff[x-dx])*F - F[x-2dx]/m_eff[x-dx]
-    // 
-    // The form in (4) is suitable for using in a shooting method because it has
-    // F[x+1] as a function of of F[x] and F[x-1]. In order to simplify the math
-    // we can write the second order equation (2) as 2 coupled first order 
-    // equations instead. With the help of an intermediate function, G.
-    // Subsitute (5) into (2) to get the other coupled equation, F:    
-    // (5) Del*F = m_eff*G   
-    // (6) Del*G = 2/h_bar^2*(V-E)*F
-    // 
-    // The two coupled equations (5) and (6) can then can have their differentials
-    // turned into finite differences to yield (using the forward difference only):
-    // (7) (F[x+dx]-F[x]) / dx = m_eff[x]*G[x]
-    // (8) (G[x+dx]-G[x]) / dx = 2/h_bar^2*(V-E)*F[x]    
-    // ...Rearranging:
-    // (9) F[x+dx] = F[x] + dx*m_eff[x]*G[x]
-    //(10) G[x+dx] = G[x] + 2dx/h_bar^2*(V-E)*F[x]
-    //
-    /////////////////////
-    //Initial Conditons//
-    /////////////////////
-    // Take the structure to start in a barrier, deep enough to warrant using:
-    //(11) F[0] = 0
-    // As for the initial value of G, solutions for F will be exponentials inside 
-    // the barrier regions and since exponentials are pretty fast functions any
-    // value of G will get the value of F going to where it is going to converge too
-    // reasonably well (well, any non zero G; G=0 gives us a trivial case).
-    //(12) G[0] = 1
-    
-    //Now, for the Feature Presentation:
-    // To find the lowest (quasi)bound state we can solve the infinite square well
-    // problem to get an upper bound on the energy.
-    // The solution for a partible in an infinite square well is known to be:
-    //(13) En = hbar^2*pi^2*n^2/(2*m*L^2)  ... where n=1 is the ground state
-    // The infinite square well solutions are used as a guess to find boundstates in the 
-    // finite wells
+	//Rearranging (14) and (15) slightly:
+	//      +--------------------------------------------------------------+
+	//(16)  |             Div*F = G / M                                    |
+	//(17)  |             Div*G = F * 2*(V-E)/h_bar^2                      |
+	//      +--------------------------------------------------------------+----> These are the useful equations the solver will implement
+	//
+	//Expanding (16) with finite differencing:
+	//       Div*F = G/M
+	//             = dF/dx + dF/dy = G/M
+	//(18)         = (F[x+dx,y]-F[x-dx,y])/(2dx) + (F[x,y+dy]-F[x,y-dy])/(2dy) = G[x,y]/M[x,y]
+	//
+	//Expanding (17) with finite differencing:
+	//       Div*G = F * 2*(V-E)/h_bar^2
+	//             = dG/dx + dG/dy = F * 2*(V-E)/h_bar^2
+	//(19)         = (G[x+dx,y]-G[x-dx,y])/(2dx) + (G[x,y+dy]-G[x,y-dy])/(2dy) = F[x,y]*2*(V[x,y]-E[x,y])/h_bar^2
+	//
+	//
+	/////////////////////
+	//Initial Conditons//
+	/////////////////////
+	//
+	//Take the structure to start in a barrier high enough enough to warrant using:
+	//(20)   F[0,0] = 0
+	//
+	//As for the initial value of G: G is porportional to the slope of F (the envelope function)
+	//solutions for the envelope function will be approx. exponentials inside barrier regions.
+	//Exponentials are fast functions so any reasonable value of G will get the value of F going 
+	//to where it is going to converge too. i.e. the overall tragectory will not be sensitive to
+	//the intial value of G if we are starting deep enough inside a tall barrier.
+	//
+	//(21)   G[0,0] = 1    
+	//Now, for the Feature Presentation:
+	// To find the lowest (quasi)bound state we can solve the infinite square well
+	// problem to get an upper bound on the energy.
+	// The solution for a partible in an infinite square well is known to be:
+	//(13) En = hbar^2*pi^2*n^2/(2*m*L^2)  ... where n=1 is the ground state
+	// The infinite square well solutions are used as a guess to find boundstates in the 
+	// finite wells
     
     printf("Iterate through Energy Eigenvalues to find the lowest bound state.\n");      
 //    printf("\tGround state for the inf square well of the same width, E1=%g eV\n", E1_infsqwell);
