@@ -12,6 +12,7 @@ int ps_data_check_index(PS_DATA data, int row, int col) {
 	if (col < 0 || col >= data->xsize) {
 		return PS_ERROR_INDEX_OUT_OF_BOUNDS;
 	}	
+	return PS_OK;
 }
 
 PS_DATA ps_create_data(unsigned int xsize, unsigned int ysize, double xstep, double ystep) {

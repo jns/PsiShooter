@@ -169,7 +169,7 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
         F[0] = 0;
         G[0] = 1;
         for(i=0; i<N-1; i++) {
-			err = ps_data_value_at_row_column(potential, 1, i, &V);
+			err = ps_data_value_at_row_column(potential, 0, i, &V);
 			if (PS_OK != err) {
 				printf("BADNESS.\n");
 				goto END;
