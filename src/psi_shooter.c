@@ -156,8 +156,8 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
 	double dx = potential->xstep;
 	double F[N]; 
 	double G[N];
-	double F_coeff = dx;//*MASS_ELECTRON; //handy prefactor that would otherwise be computed N times in the following loop for F[i+1]
-	double G_coeff = 2*dx;///(HBAR_PLANCK*HBAR_PLANCK); //handy prefactor that would otherwise be computed N times in the following loop for G[i+1]       
+	double F_coeff = dx*MASS_ELECTRON; //handy prefactor that would otherwise be computed N times in the following loop for F[i+1]
+	double G_coeff = 2*dx/(HBAR_PLANCK*HBAR_PLANCK); //handy prefactor that would otherwise be computed N times in the following loop for G[i+1]       
 	double V;
 	int err;
 	
@@ -307,7 +307,7 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
 	int ysize = 1; // only one row
 	int i;
 
-	double Vb = 0.1; // Undefined units. Just for compilation testing.
+	double Vb = 500; // meV barrier
 	
  	PS_DATA potential = ps_create_data(xsize, ysize, xstep, ystep);
 	for (i = 0; i < xsize; i++) {
@@ -325,8 +325,8 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
 	double energies[n_energies];
 	double bound_energies[n_energies];
 	
-	double e_start = 0.001;
-	double e_step = 0.001;
+	double e_start = 1;
+	double e_step = 0.5;
 	for (i = 0; i < n_energies; i++) {
 		energies[i] = e_start + i*e_step;
 	}
