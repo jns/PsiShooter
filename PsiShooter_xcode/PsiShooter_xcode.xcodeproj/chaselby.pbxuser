@@ -1,0 +1,150 @@
+// !$*UTF8*$!
+{
+	3DF2EA6E0FB62AAD003B6483 /* Project object */ = {
+		activeBuildConfigurationName = Debug;
+		activeExecutable = 3DF2EA820FB62AF5003B6483 /* PsiShooter_xcode */;
+		activeTarget = 3DF2EA7F0FB62AF5003B6483 /* PsiShooter_xcode */;
+		addToTargets = (
+		);
+		codeSenseManager = 3DF2EA730FB62AAD003B6483 /* Code sense */;
+		executables = (
+			3DF2EA820FB62AF5003B6483 /* PsiShooter_xcode */,
+		);
+		ignoreBreakpointsInProjectsDict = {
+		};
+		perUserDictionary = {
+			PBXConfiguration.PBXFileTableDataSource3.PBXFileTableDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXFileDataSource_Filename_ColumnID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					341,
+					20,
+					48,
+					43,
+					43,
+					20,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXFileDataSource_FiletypeID,
+					PBXFileDataSource_Filename_ColumnID,
+					PBXFileDataSource_Built_ColumnID,
+					PBXFileDataSource_ObjectSize_ColumnID,
+					PBXFileDataSource_Errors_ColumnID,
+					PBXFileDataSource_Warnings_ColumnID,
+					PBXFileDataSource_Target_ColumnID,
+				);
+			};
+			PBXConfiguration.PBXTargetDataSource.PBXTargetDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXFileDataSource_Filename_ColumnID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					301,
+					60,
+					20,
+					48,
+					43,
+					43,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXFileDataSource_FiletypeID,
+					PBXFileDataSource_Filename_ColumnID,
+					PBXTargetDataSource_PrimaryAttribute,
+					PBXFileDataSource_Built_ColumnID,
+					PBXFileDataSource_ObjectSize_ColumnID,
+					PBXFileDataSource_Errors_ColumnID,
+					PBXFileDataSource_Warnings_ColumnID,
+				);
+			};
+			PBXPerProjectTemplateStateSaveDate = 263596717;
+			PBXWorkspaceStateSaveDate = 263596717;
+		};
+		perUserProjectItems = {
+			3DF2EA8E0FB62B22003B6483 /* PBXTextBookmark */ = 3DF2EA8E0FB62B22003B6483 /* PBXTextBookmark */;
+			3DF2EA8F0FB62B22003B6483 /* PBXTextBookmark */ = 3DF2EA8F0FB62B22003B6483 /* PBXTextBookmark */;
+			3DF2EA9C0FB62B2F003B6483 /* PBXTextBookmark */ = 3DF2EA9C0FB62B2F003B6483 /* PBXTextBookmark */;
+		};
+		sourceControlManager = 3DF2EA720FB62AAD003B6483 /* Source Control */;
+		userBuildSettings = {
+		};
+	};
+	3DF2EA720FB62AAD003B6483 /* Source Control */ = {
+		isa = PBXSourceControlManager;
+		fallbackIsa = XCSourceControlManager;
+		isSCMEnabled = 0;
+		scmConfiguration = {
+		};
+	};
+	3DF2EA730FB62AAD003B6483 /* Code sense */ = {
+		isa = PBXCodeSenseManager;
+		indexTemplatePath = "";
+	};
+	3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {1200, 4928}}";
+			sepNavSelRange = "{15163, 0}";
+			sepNavVisRange = "{14867, 299}";
+		};
+	};
+	3DF2EA7F0FB62AF5003B6483 /* PsiShooter_xcode */ = {
+		activeExec = 0;
+		executables = (
+			3DF2EA820FB62AF5003B6483 /* PsiShooter_xcode */,
+		);
+	};
+	3DF2EA820FB62AF5003B6483 /* PsiShooter_xcode */ = {
+		isa = PBXExecutable;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		breakpointsEnabled = 0;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		dylibVariantSuffix = "";
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = PsiShooter_xcode;
+		sourceDirectories = (
+		);
+	};
+	3DF2EA8E0FB62B22003B6483 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */;
+		name = "psi_shooter.c: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 965;
+		vrLoc = 0;
+	};
+	3DF2EA8F0FB62B22003B6483 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */;
+		name = "psi_shooter.c: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 287;
+		vrLoc = 14867;
+	};
+	3DF2EA9C0FB62B2F003B6483 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */;
+		name = "psi_shooter.c: 349";
+		rLen = 0;
+		rLoc = 15163;
+		rType = 0;
+		vrLen = 299;
+		vrLoc = 14867;
+	};
+}

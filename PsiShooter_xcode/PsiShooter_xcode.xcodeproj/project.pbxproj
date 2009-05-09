@@ -1,0 +1,180 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 42;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		3DF2EA860FB62B08003B6483 /* ps_constants.h in Sources */ = {isa = PBXBuildFile; fileRef = 3DF2EA780FB62AC8003B6483 /* ps_constants.h */; };
+		3DF2EA870FB62B08003B6483 /* ps_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 3DF2EA790FB62AC8003B6483 /* ps_data.c */; };
+		3DF2EA880FB62B08003B6483 /* ps_data.h in Sources */ = {isa = PBXBuildFile; fileRef = 3DF2EA7A0FB62AC8003B6483 /* ps_data.h */; };
+		3DF2EA890FB62B08003B6483 /* ps_errors.h in Sources */ = {isa = PBXBuildFile; fileRef = 3DF2EA7B0FB62AC8003B6483 /* ps_errors.h */; };
+		3DF2EA8A0FB62B08003B6483 /* psi_shooter.c in Sources */ = {isa = PBXBuildFile; fileRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		3DF2EA770FB62AC8003B6483 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../src/Makefile; sourceTree = SOURCE_ROOT; };
+		3DF2EA780FB62AC8003B6483 /* ps_constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ps_constants.h; path = ../src/ps_constants.h; sourceTree = SOURCE_ROOT; };
+		3DF2EA790FB62AC8003B6483 /* ps_data.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ps_data.c; path = ../src/ps_data.c; sourceTree = SOURCE_ROOT; };
+		3DF2EA7A0FB62AC8003B6483 /* ps_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ps_data.h; path = ../src/ps_data.h; sourceTree = SOURCE_ROOT; };
+		3DF2EA7B0FB62AC8003B6483 /* ps_errors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ps_errors.h; path = ../src/ps_errors.h; sourceTree = SOURCE_ROOT; };
+		3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = psi_shooter.c; path = ../src/psi_shooter.c; sourceTree = SOURCE_ROOT; };
+		3DF2EA800FB62AF5003B6483 /* PsiShooter_xcode */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = PsiShooter_xcode; path = build/Debug/PsiShooter_xcode; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		3DF2EA7E0FB62AF5003B6483 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3DF2EA6C0FB62AAD003B6483 = {
+			isa = PBXGroup;
+			children = (
+				3DF2EA770FB62AC8003B6483 /* Makefile */,
+				3DF2EA780FB62AC8003B6483 /* ps_constants.h */,
+				3DF2EA790FB62AC8003B6483 /* ps_data.c */,
+				3DF2EA7A0FB62AC8003B6483 /* ps_data.h */,
+				3DF2EA7B0FB62AC8003B6483 /* ps_errors.h */,
+				3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */,
+				3DF2EA810FB62AF5003B6483 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3DF2EA810FB62AF5003B6483 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				3DF2EA800FB62AF5003B6483 /* PsiShooter_xcode */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3DF2EA7F0FB62AF5003B6483 /* PsiShooter_xcode */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3DF2EA850FB62AF6003B6483 /* Build configuration list for PBXNativeTarget "PsiShooter_xcode" */;
+			buildPhases = (
+				3DF2EA7D0FB62AF5003B6483 /* Sources */,
+				3DF2EA7E0FB62AF5003B6483 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PsiShooter_xcode;
+			productName = PsiShooter_xcode;
+			productReference = 3DF2EA800FB62AF5003B6483 /* PsiShooter_xcode */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		3DF2EA6E0FB62AAD003B6483 /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 3DF2EA710FB62AAD003B6483 /* Build configuration list for PBXProject "PsiShooter_xcode" */;
+			compatibilityVersion = "Xcode 2.4";
+			hasScannedForEncodings = 0;
+			mainGroup = 3DF2EA6C0FB62AAD003B6483;
+			productRefGroup = 3DF2EA810FB62AF5003B6483 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3DF2EA7F0FB62AF5003B6483 /* PsiShooter_xcode */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3DF2EA7D0FB62AF5003B6483 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3DF2EA860FB62B08003B6483 /* ps_constants.h in Sources */,
+				3DF2EA870FB62B08003B6483 /* ps_data.c in Sources */,
+				3DF2EA880FB62B08003B6483 /* ps_data.h in Sources */,
+				3DF2EA890FB62B08003B6483 /* ps_errors.h in Sources */,
+				3DF2EA8A0FB62B08003B6483 /* psi_shooter.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		3DF2EA6F0FB62AAD003B6483 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+			};
+			name = Debug;
+		};
+		3DF2EA700FB62AAD003B6483 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+			};
+			name = Release;
+		};
+		3DF2EA830FB62AF6003B6483 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/bin;
+				PREBINDING = NO;
+				PRODUCT_NAME = PsiShooter_xcode;
+			};
+			name = Debug;
+		};
+		3DF2EA840FB62AF6003B6483 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				INSTALL_PATH = /usr/local/bin;
+				PREBINDING = NO;
+				PRODUCT_NAME = PsiShooter_xcode;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3DF2EA710FB62AAD003B6483 /* Build configuration list for PBXProject "PsiShooter_xcode" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3DF2EA6F0FB62AAD003B6483 /* Debug */,
+				3DF2EA700FB62AAD003B6483 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3DF2EA850FB62AF6003B6483 /* Build configuration list for PBXNativeTarget "PsiShooter_xcode" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3DF2EA830FB62AF6003B6483 /* Debug */,
+				3DF2EA840FB62AF6003B6483 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 3DF2EA6E0FB62AAD003B6483 /* Project object */;
+}

@@ -345,5 +345,7 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
  */
 int main(int argc, char **argv) {
 	test_potential_1D();
+	
+	return 0;
 }
 
