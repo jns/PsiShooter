@@ -2,6 +2,7 @@
 #include "ps_data.h"
 #include "ps_errors.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 // Internal function to check index
 int ps_data_check_index(PS_DATA data, int row, int col) {
@@ -22,6 +23,7 @@ PS_DATA ps_create_data(unsigned int xsize, unsigned int ysize, double xstep, dou
 	new_data->xstep = xstep;
 	new_data->ystep = ystep;
 	new_data->data = (double*)malloc(xsize*ysize*sizeof(double));
+	return new_data;
 }
 
 void ps_destroy_data(PS_DATA data) {
@@ -39,7 +41,7 @@ int ps_data_columns(PS_DATA data) {
 
 int ps_data_init_with_array(PS_DATA data, double *values, int nrows, int ncols) {
 	int i,j;
-	if (nrows == data->xsize && ncols == data->ysize) {
+	if (nrows == data->ysize && ncols == data->xsize) {
 		for (i = 0; i < nrows; i++) {
 			for (j=0; j< ncols; j++) {
 				data->data[i*ncols + j] = values[i*ncols + j];

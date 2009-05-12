@@ -160,11 +160,10 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
 	double G_coeff = 2*dx/(HBAR_PLANCK*HBAR_PLANCK); //handy prefactor that would otherwise be computed N times in the following loop for G[i+1]       
 	double V;
 	int err;
-	
 	for(E_index = 0; E_index < buf_size; E_index++) {
 
 		E = energies[E_index];
-        printf("\tE=%g eV\n", E);
+        printf("\tE=%g meV\n", E);
         
         F[0] = 0;
         G[0] = 1;
@@ -176,6 +175,7 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
 			}
             F[i+1] = F[i] + F_coeff*G[i]; // (9) F[x+dx] = F[x] + dx*m_eff[x]*G[x]
             G[i+1] = G[i] + G_coeff*(V-E)*F[i]; //(10) G[x+dx] = G[x] + 2dx/h_bar^2*(V-E)*F[x]                
+
         }
         
         printf("\tF[N-1]=%e\n", F[N-1]);
@@ -219,6 +219,7 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
             }
         }
         
+
 		//Output printf files
         //print F[i] to log
         //print G[i] to log
@@ -306,19 +307,22 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
 	int xsize = 100; // 100nm total
 	int ysize = 1; // only one row
 	int i;
-
-	double Vb = 500; // meV barrier
+	int err;
+	double Vb = 500.0; // meV barrier
+	double V;
 	
  	PS_DATA potential = ps_create_data(xsize, ysize, xstep, ystep);
 	for (i = 0; i < xsize; i++) {
 		// Define well in middle 20nm
-		if (i > 40 || i < 60) {
-			ps_data_set_value_at_row_column(potential, 1, i, 0);
+		if (i > 40 && i < 60) {
+			err=ps_data_set_value_at_row_column(potential, 0, 0, i);
 		} else {
-			ps_data_set_value_at_row_column(potential, 1, i, Vb);
+			err=ps_data_set_value_at_row_column(potential, Vb, 0, i);
+		}
+		if (PS_OK != err) {
+			printf("Error initializing potential\n");
 		}
 	}
-
 
 	// Initialize an array of energies to test
 	int n_energies = 1000;
