@@ -152,7 +152,7 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
 
 	// wavefunction storage.  
 	int N = potential->xsize;
-	int N_threshold = N/2;
+	int N_threshold = N/20;
 	double dx = potential->xstep;
 	double F[N]; 
 	double G[N];
@@ -168,7 +168,7 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
         F[0] = 0;
         G[0] = 1;
         for(i=0; i<N-1; i++) {
-			err = ps_data_value_at_row_column(potential, 0, i, &V);
+			V = ps_data_value(potential, 0,i);
 			if (PS_OK != err) {
 				printf("BADNESS.\n");
 				goto END;
@@ -323,7 +323,7 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
 			printf("Error initializing potential\n");
 		}
 	}
-
+	
 	// Initialize an array of energies to test
 	int n_energies = 1000;
 	double energies[n_energies];

@@ -16,6 +16,8 @@ typedef struct {
 
 typedef PS_DATA_T* PS_DATA;
 
+#define ps_data_value(ps_data,r,c) (ps_data->data[ps_data->xsize*r + c])
+
 /** Create and destroy functions **/
 PS_DATA ps_create_data(unsigned int xsize, unsigned int ysize, double xstep, double ystep);
 void ps_destroy_data(PS_DATA data);
