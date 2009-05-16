@@ -3,6 +3,7 @@
 #include "ps_errors.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 // Internal function to check index
 int ps_data_check_index(PS_DATA data, int row, int col) {
@@ -17,18 +18,28 @@ int ps_data_check_index(PS_DATA data, int row, int col) {
 }
 
 PS_DATA ps_create_data(unsigned int xsize, unsigned int ysize, double xstep, double ystep) {
+	PS_DATA retval = ps_data_create(xsize, ysize);
+}
+
+PS_DATA ps_data_create(unsigned int xsize, unsigned int ysize) {
 	PS_DATA new_data = (PS_DATA)malloc(sizeof(PS_DATA_T));
 	new_data->xsize = xsize;
 	new_data->ysize = ysize;
-	new_data->xstep = xstep;
-	new_data->ystep = ystep;
+	new_data->x_values = (double*)malloc(sizeof(double)*xsize);
+	new_data->y_values = (double*)malloc(sizeof(double)*ysize);
 	new_data->data = (double*)malloc(xsize*ysize*sizeof(double));
 	return new_data;
 }
 
-void ps_destroy_data(PS_DATA data) {
+void ps_data_destroy(PS_DATA data) {
 	free(data->data);
-	free(data);
+	free(data->x_values);
+	free(data->y_values);
+	free(data);	
+}
+
+void ps_destroy_data(PS_DATA data) {
+	ps_data_destroy(data);
 }
 
 int ps_data_rows(PS_DATA data) {
@@ -40,18 +51,7 @@ int ps_data_columns(PS_DATA data) {
 }
 
 int ps_data_init_with_array(PS_DATA data, double *values, int nrows, int ncols) {
-	int i,j;
-	if (nrows == data->ysize && ncols == data->xsize) {
-		for (i = 0; i < nrows; i++) {
-			for (j=0; j< ncols; j++) {
-				data->data[i*ncols + j] = values[i*ncols + j];
-			}
-		}
-		return PS_OK;
-	} else {
-		return PS_ERROR_DIMENSION_MISMATCH;
-	}
-	
+	memcpy(data->data, values, (data->xsize)*(data->ysize)*sizeof(double));
 }
 
 int ps_data_set_value_at_row_column(PS_DATA data, double value, unsigned int row, unsigned int col) {
@@ -61,6 +61,24 @@ int ps_data_set_value_at_row_column(PS_DATA data, double value, unsigned int row
 	}
 	data->data[row*data->xsize + col] = value;
 	return PS_OK;
+}
+
+int ps_data_set_x_values(PS_DATA data, double *x_values) {
+	memcpy(data->x_values, x_values, (data->xsize)*sizeof(double));
+	return PS_OK;
+}
+
+int ps_data_set_y_values(PS_DATA data, double *y_values) {
+	memcpy(data->y_values, y_values, (data->ysize)*sizeof(double));
+	return PS_OK;
+}
+
+double ps_data_xvalue_at(PS_DATA data, int col) {
+	return data->x_values[col];
+}
+
+double ps_data_yvalue_at(PS_DATA data, int row) {
+	return data->y_values[row];
 }
 
 int ps_data_value_at_row_column(PS_DATA data, unsigned int row, unsigned int col, double *val) {

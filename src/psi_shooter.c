@@ -153,11 +153,11 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
 	// wavefunction storage.  
 	int N = potential->xsize;
 	int N_threshold = N/20;
-	double dx = potential->xstep;
+	double dx;
 	double F[N]; 
 	double G[N];
-	double F_coeff = dx*MASS_ELECTRON; //handy prefactor that would otherwise be computed N times in the following loop for F[i+1]
-	double G_coeff = 2*dx/(HBAR_PLANCK*HBAR_PLANCK); //handy prefactor that would otherwise be computed N times in the following loop for G[i+1]       
+	double F_coeff;//handy prefactor that would otherwise be computed N times in the following loop for F[i+1]
+	double G_coeff; //handy prefactor that would otherwise be computed N times in the following loop for G[i+1]       
 	double V;
 	int err;
 	for(E_index = 0; E_index < buf_size; E_index++) {
@@ -173,6 +173,9 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
 				printf("BADNESS.\n");
 				goto END;
 			}
+			dx = ps_data_xvalue_at(potential, i+1) - ps_data_xvalue_at(potential, i);
+			F_coeff = dx*MASS_ELECTRON; 
+			G_coeff = 2*dx/(HBAR_PLANCK*HBAR_PLANCK); 
             F[i+1] = F[i] + F_coeff*G[i]; // (9) F[x+dx] = F[x] + dx*m_eff[x]*G[x]
             G[i+1] = G[i] + G_coeff*(V-E)*F[i]; //(10) G[x+dx] = G[x] + 2dx/h_bar^2*(V-E)*F[x]                
 

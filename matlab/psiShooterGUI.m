@@ -56,6 +56,10 @@ function psiShooterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 
 %Global data set
 global potential psi;
+%clear the global variables in case this program is being run twice in the
+%same instance of matlab.
+potential = [];
+psi = [];
 
 % Choose default command line output for psiShooterGUI
 handles.output = hObject;
@@ -97,7 +101,8 @@ switch loadMenu_index
         set(handles.loadInput, 'String', 'Input File Path');
         %end
     case 2
-        set(handles.loadInput, 'String', '');
+        getPotential();
+        set(handles.loadInput, 'String', 'SELECT YOUR NEW FILE');
     case 3
         set(handles.loadInput, 'String', 'Input Function');
     case 4
@@ -136,9 +141,9 @@ axes(handles.simPlot);%set up to plot on the main plot window
 global potential; %access global potential variable
 
 loadMenu_index = get(handles.loadMenu, 'Value');
+currSysMessText = get(handles.systemMessages, 'String');
 switch loadMenu_index
     case 1
-        currSysMessText = get(handles.systemMessages, 'String');
         filePath = get(handles.loadInput,'String');
         
         %get the file path if none is specified in the text box
@@ -181,13 +186,19 @@ switch loadMenu_index
         end
         
     case 2
-        cla;
+        set(handles.loadInput,'String','LOAD THE FILE YOU CREATED');
     case 3
         cla;
     case 4
-        cla;
-    case 5
-        cla;
+        currSysMessText =[{'Load Default Potential'};currSysMessText];
+        set(handles.systemMessages, 'String', currSysMessText);
+        potential.x = [1,2,3,4,5,6,7,8,9];
+        potential.y = [1,2,3,4,5,6,7,8,9];
+        potential.data = [5,5,5,5,5,5,5,5,5;5,4,4,4,4,4,4,4,5;...
+            5,4,3,2,2,2,3,4,5;5,4,2,2,1,2,2,4,5;5,4,2,1,1,1,2,4,5;...
+            5,4,2,2,1,2,2,4,5;5,4,3,2,2,2,3,4,5;5,4,4,4,4,4,4,4,5;...
+            5,5,5,5,5,5,5,5,5];
+        visualize2D(potential.x,potential.y,potential.data,0)
 end
 
 guidata(hObject,handles)
@@ -226,6 +237,8 @@ function simulateButton_Callback(hObject, eventdata, handles)
 % hObject    handle to simulateButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+%Precede the shell command with ! to execute.
 
 %%
 
@@ -493,6 +506,7 @@ for n = 1:4:nargin
         set(h(n),'edgealpha',0.7);
     end
 end
+rotate3D on;
 hold off;
 'end';% a good place to stick a breakpoint for playing with the plots.
 %make sure to turn 'rotate3d on;'
@@ -510,7 +524,7 @@ function [potential,messages] = loadPotentialData(path)
 %will default to binary.
 
 try
-    fidP = fopen(path);
+    fidP = fopen(path,'r');
 catch
     potential = [];
     messages = {'FILE FAILED TO LOAD'};
@@ -526,11 +540,11 @@ try
     messages = [];
     if strcmp(path(end-3:end),'.txt')
         %ascii or unicode
-        xNum = fscanf(fidP,'%d',1);
-        yNum = fscanf(fidP,'%d',1);
-        potential.x = fscanf(fidP,'%d',xNum);
-        potential.y = fscanf(fidP,'%d',yNum);
-        potential.data = fscanf(fidP,'%d',[xNum,yNum]);
+        xNum = fscanf(fidP,'%e',1);
+        yNum = fscanf(fidP,'%e',1);
+        potential.x = fscanf(fidP,'%e',xNum);
+        potential.y = fscanf(fidP,'%e',yNum);
+        potential.data = fscanf(fidP,'%e',[xNum,yNum]);
         if size(potential.data,1)*size(potential.data,2) ~= xNum*yNum
             messages =[{'POTENTIAL DATA MISLOADED (size != xNum*yNum)'};...
                 {'Is your file formatted correctly?'};...
@@ -538,8 +552,8 @@ try
         end
     else
         %binary
-        xNum = fread(fidP,1,'flat64');
-        yNum = fread(fidP,1,'flat64');
+        xNum = fread(fidP,1,'float64');
+        yNum = fread(fidP,1,'float64');
         potential.x = fread(fidP,xNum,'float64');
         potential.y = fread(fidP,yNum,'float64');
         potential.data = fread(fidP,[xNum,yNum],'float64');
