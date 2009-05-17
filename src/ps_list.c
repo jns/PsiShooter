@@ -31,13 +31,15 @@ void ps_list_destroy_all(PS_LIST list) {
 	if (node != NULL) {	
 		PS_LIST_NODE *next = node->next;
 		while (next != NULL) {
-			ps_data_destroy(node->node_data);
+			ps_data_destroy(node->node_data->wavefunction);
+			free(node->node_data);
 			free(node);
 			node = next;
 			next = node->next;
 		}
 		// At end of loop we still have to free the last node
-		ps_data_destroy(node->node_data);
+		ps_data_destroy(node->node_data->wavefunction);
+		free(node->node_data);
 		free(node);
 	}
 	free(list);	
@@ -57,7 +59,7 @@ int ps_list_size(PS_LIST list) {
 /**
  * Set the current node to the head of the list
  */
-PS_DATA ps_list_front(PS_LIST list) {
+PS_SOLUTION* ps_list_front(PS_LIST list) {
 	list->current = list->head;
 	if (list->current == NULL) {
 		return NULL;
@@ -69,7 +71,7 @@ PS_DATA ps_list_front(PS_LIST list) {
 /**
  * Move to the next position in the list and return the PS_DATA object htere.
  */
-PS_DATA ps_list_next(PS_LIST list) {
+PS_SOLUTION* ps_list_next(PS_LIST list) {
 	if(list->current->next == NULL) {
 		return NULL;
 	} else {
@@ -81,11 +83,11 @@ PS_DATA ps_list_next(PS_LIST list) {
 /**
  * Add a new node onto the tail and make it current
  */
-void ps_list_add(PS_LIST list, PS_DATA data) {
+void ps_list_add(PS_LIST list, PS_SOLUTION *solution) {
 	
 	// Make a new node
 	PS_LIST_NODE *newnode = (PS_LIST_NODE*)malloc(sizeof(PS_LIST_NODE));
-	newnode->node_data = data;
+	newnode->node_data = solution;
 	newnode->next = NULL;
 	
 	if (list->head == NULL) {

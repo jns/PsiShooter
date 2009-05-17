@@ -22,6 +22,7 @@ typedef PS_DATA_T* PS_DATA;
 /** Create and destroy functions **/
 PS_DATA ps_create_data(unsigned int xsize, unsigned int ysize, double xstep, double ystep); // DEPRECATED use ps_data_create
 PS_DATA ps_data_create(unsigned int rows, unsigned int cols);
+PS_DATA ps_data_copy(PS_DATA data);
 
 void ps_destroy_data(PS_DATA data); // DEPRECATED use ps_data_destroy
 void ps_data_destroy(PS_DATA data);

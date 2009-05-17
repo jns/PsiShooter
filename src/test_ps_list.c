@@ -1,7 +1,9 @@
 #include "ps_data.h"
 #include "ps_data_io.h"
 #include "ps_list.h"
+#include "psi_shooter.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(int argc, char **argv) {
 
@@ -17,18 +19,27 @@ int main(int argc, char **argv) {
 	PS_DATA data = ps_data_read_bin(infile);
 	fclose(infile);
 	
+	PS_SOLUTION *solution;
+	
 	PS_LIST list = ps_list_create();
 	for(i=0; i<5; i++) {
-		ps_list_add(list, data);
+		solution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
+		solution->energy = i;
+		solution->wavefunction = ps_data_copy(data);
+		ps_list_add(list, solution);
 		printf("List Size=%i\n", ps_list_size(list));
 	}
+	free(data);
 
-	PS_DATA node = ps_list_front(list);
+	PS_SOLUTION *listnode = ps_list_front(list);
 	i = 0;
-	while (node != NULL) {
+	while (listnode != NULL) {
 		printf("Node %i\n", ++i);
-		ps_data_write_ascii(node, stdout);
-		node = ps_list_next(list);
+		printf("Energy=%f\n", listnode->energy);
+		ps_data_write_ascii(listnode->wavefunction, stdout);
+		listnode = ps_list_next(list);
 	}
+	
+	ps_list_destroy_all(list);
 	return 0;
 }	

@@ -2,9 +2,10 @@
 #define PS_LIST_H
 
 #include "ps_data.h"
+#include "psi_shooter.h"
 
 typedef struct list_node {
-	PS_DATA node_data;
+	PS_SOLUTION *node_data;
 	struct list_node *next;
 } PS_LIST_NODE;
 
@@ -26,10 +27,10 @@ void ps_list_destroy_all(PS_LIST list);
 int ps_list_size(PS_LIST list);
 
 /** Add an element */
-void ps_list_add(PS_LIST list, PS_DATA data);
+void ps_list_add(PS_LIST list, PS_SOLUTION *data);
 
 /** Navigation returns NULL when empty or at end.*/
-PS_DATA ps_list_front(PS_LIST list);
-PS_DATA ps_list_next(PS_LIST list);
+PS_SOLUTION* ps_list_front(PS_LIST list);
+PS_SOLUTION* ps_list_next(PS_LIST list);
 
 #endif

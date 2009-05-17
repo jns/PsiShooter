@@ -31,6 +31,14 @@ PS_DATA ps_data_create(unsigned int xsize, unsigned int ysize) {
 	return new_data;
 }
 
+PS_DATA ps_data_copy(PS_DATA data) {
+	PS_DATA newdata = ps_data_create(data->xsize, data->ysize);
+	ps_data_set_x_values(newdata, data->x_values);
+	ps_data_set_y_values(newdata, data->y_values);
+	ps_data_init_with_array(newdata, data->data, data->ysize, data->xsize);
+	return newdata;
+}
+
 void ps_data_destroy(PS_DATA data) {
 	free(data->data);
 	free(data->x_values);

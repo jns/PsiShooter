@@ -12,6 +12,10 @@
  *     note: A position dependant mass fucks up the hermicity of H (hamiltonian operator)
  */
 
+void ps_log(char *msg) {
+	fprintf(stdout, msg);
+}
+
 /**
  * Solve for the bound energies given by the potential. 
  * energies is a buffer of energies to test.
@@ -351,8 +355,32 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
  * PsiShooter program entry point
  */
 int main(int argc, char **argv) {
-	test_potential_1D();
 	
+	char *msg;
+	if (1 == argc) {
+
+		sprintf(msg, "No file specified. Using builtin potential.\n");
+		ps_log(msg);
+		test_potential_1D();		
+
+	} else if (2 == argc) {
+		// Interpret argument as file to process
+
+		FILE *infile = fopen(argv[1], argv[1]);
+		if (infile == NULL) {
+			sprintf(msg, "Error opening file '%s'\n", argv[1]);
+			ps_log(msg);
+		} else {
+			sprintf(msg, "Using potential from file '%s'\n", argv[1]);
+			ps_log(msg);
+
+			PS_DATA potential = ps_data_read_bin(infile);
+			fclose(infile);
+			
+			sprintf(msg, "Cannot continue. I don't know what energies to try.\n");
+			ps_log(msg);			
+		}
+	}
 	return 0;
 }
 
