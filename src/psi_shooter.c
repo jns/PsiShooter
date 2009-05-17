@@ -357,6 +357,8 @@ int ps_solve(PS_DATA potential, double *energies, double *bound_energies, int bu
 int main(int argc, char **argv) {
 	
 	char *msg;
+	PS_DATA potential;
+	
 	if (1 == argc) {
 
 		sprintf(msg, "No file specified. Using builtin potential.\n");
@@ -366,7 +368,7 @@ int main(int argc, char **argv) {
 	} else if (2 == argc) {
 		// Interpret argument as file to process
 
-		FILE *infile = fopen(argv[1], argv[1]);
+		FILE *infile = fopen(argv[1], "r");
 		if (infile == NULL) {
 			sprintf(msg, "Error opening file '%s'\n", argv[1]);
 			ps_log(msg);
@@ -374,7 +376,7 @@ int main(int argc, char **argv) {
 			sprintf(msg, "Using potential from file '%s'\n", argv[1]);
 			ps_log(msg);
 
-			PS_DATA potential = ps_data_read_bin(infile);
+			potential = ps_data_read_bin(infile);
 			fclose(infile);
 			
 			sprintf(msg, "Cannot continue. I don't know what energies to try.\n");
