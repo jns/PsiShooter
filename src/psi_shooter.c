@@ -204,10 +204,6 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
         
 		for(i=1; i<N-2; i++) {
 			V = ps_data_value(potential, 0,i); //V[i]
-			if (PS_OK != err) {
-				ps_log("BADNESS.\n");
-				goto END;
-			}
 			F[i+1] = F_coeff * G[i] * m_eff + F[i-1]; //subbed in m_eff for m[i], To Do: support a position dependant mass by storing different masses at different locations (add to the PS_DATA structure probably)			
 			G[i+1] = G_coeff * F[i]*(V-E) + G[i-1];
         }
@@ -296,11 +292,7 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
             }            
             fclose(pFile_G); //fflush(pFile1); //closing flushes already
         }
-    }
-    
-
-	END:
-    	
+    }    	
 	
 	return solution_list;
 }
@@ -332,7 +324,7 @@ PS_DATA test_potential_1D() {
 	int ysize = 1; //1D for now so only 1 "row"
 	double Vb = 500.0; // meV barrier
 	
-	PS_DATA potential = ps_data_create(ysize, xsize);
+	PS_DATA potential = ps_data_create(xsize, ysize);
 	potential->xstep = xstep; // This is temporary.  Jere and I have changed the file format to support non-uniform rectilinear grids
 		  				  // which means that each x and y value is specified and the dx must be queried at every point.
 	
