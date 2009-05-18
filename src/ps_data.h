@@ -45,7 +45,8 @@ double ps_data_yvalue_at(PS_DATA data, int row);
  * Initialize the data from a two-dimensional array of the correct size. 
  * Returns 0 upon success, error otherwise.
 */
-int ps_data_init_with_array(PS_DATA data, double *values, int nrows, int ncols);
+int ps_data_init_with_array(PS_DATA data, double *values, int nrows, int ncols); //DEPRECATED, use ps_data_set_data
+int ps_data_set_data(PS_DATA, double *values);
 
 /**
  * Set the value at a particular row/column

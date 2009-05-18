@@ -59,7 +59,11 @@ int ps_data_columns(PS_DATA data) {
 }
 
 int ps_data_init_with_array(PS_DATA data, double *values, int nrows, int ncols) {
-	memcpy(data->data, values, (data->xsize)*(data->ysize)*sizeof(double));
+	ps_data_set_data(data, values);
+}
+
+int ps_data_set_data(PS_DATA data, double *values) {
+	memcpy(data->data, values, (data->xsize)*(data->ysize)*sizeof(double));	
 }
 
 int ps_data_set_value_at_row_column(PS_DATA data, double value, unsigned int row, unsigned int col) {

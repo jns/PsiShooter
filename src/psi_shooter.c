@@ -1,8 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "ps_constants.h"
 #include "ps_errors.h"
 #include "ps_data.h"
 #include "ps_data_io.h"
+#include "ps_list.h"
 #include "math.h"
 
 /*The Big To Do list:
@@ -132,9 +134,10 @@ void ps_log(char *msg) {
 //(13) En = hbar^2*pi^2*n^2/(2*m*L^2)  ... where n=1 is the ground state
 // The infinite square well solutions are used as a guess to find boundstates in the 
 // finite wells
-int ps_solve_1D(PS_DATA potential) {
+PS_LIST ps_solve_1D(PS_DATA potential) {
 
-	printf("PsiShooter -- a shooting method solver for the time independant Schrodinger equation under the effective mass approximation.\n");
+	char log_message[256];
+	ps_log("PsiShooter -- a shooting method solver for the time independant Schrodinger equation under the effective mass approximation.\n");
 	
 	//TO DO: these will not stay hard coded. Someday we will have a slick way to handle file I/O.
 	char LOG_FILENAME_V[] = "V.dat"; //Output file for the potential energy profile, V(x)
@@ -144,8 +147,10 @@ int ps_solve_1D(PS_DATA potential) {
     char LOG_FILENAME_BS[] = "BS.dat"; //Output file for the envelope function (wavefunction) of bound states
     char LOG_FILENAME_E[] = "E.dat"; //Output file for the eigenvalues corresponding to bound states
 
-    
-    printf("Iterate through Energy Eigenvalues to find the lowest bound state.\n");      
+    // This is a linked list for storing solutions
+	PS_LIST solution_list = ps_list_create();
+
+    ps_log("Iterate through Energy Eigenvalues to find the lowest bound state.\n");      
 	
 	//TO DO: the energies being searched will not stay hard coded. We will probably define a structure to pass in that 
 	//controls the energy range that will be searched for solutions
@@ -189,8 +194,9 @@ int ps_solve_1D(PS_DATA potential) {
 		
 	for(E = Emin; E < Emax; E+=Estep) {
 
-        printf("\tE=%g meV\n", E);
-        
+        sprintf(log_message,"\tE=%g meV\n", E);
+		ps_log(log_message);
+		
         F[0] = 0;
         G[0] = 1;
 		F[1] = 0;
@@ -199,19 +205,21 @@ int ps_solve_1D(PS_DATA potential) {
 		for(i=1; i<N-2; i++) {
 			V = ps_data_value(potential, 0,i); //V[i]
 			if (PS_OK != err) {
-				printf("BADNESS.\n");
+				ps_log("BADNESS.\n");
 				goto END;
 			}
 			F[i+1] = F_coeff * G[i] * m_eff + F[i-1]; //subbed in m_eff for m[i], To Do: support a position dependant mass by storing different masses at different locations (add to the PS_DATA structure probably)			
 			G[i+1] = G_coeff * F[i]*(V-E) + G[i-1];
         }
         
-        printf("\tF[N-1]=%g\n", F[N-1]);
-        
+        sprintf(log_message, "\tF[N-1]=%g\n", F[N-1]);
+		ps_log(log_message);
+		
         //Is the boundry value near the threshold (and therefore a solution)?
         if(!threshold_set_flag) {
             F_threshold = F[N_threshold]; //Use the value that F gets to half way through the first barrier (the boundry barrier)
-            printf("\tSetting boundry value threshold for F_threshold=%e, which is the value of F @ point N=%d (1/2 through the first barrier for the first \"shot\"), \n", F_threshold, N_threshold);
+            sprintf(log_message, "\tSetting boundry value threshold for F_threshold=%e, which is the value of F @ point N=%d (1/2 through the first barrier for the first \"shot\"), \n", F_threshold, N_threshold);
+			ps_log(log_message);
             threshold_set_flag = 1; 
         }   
         
@@ -219,10 +227,21 @@ int ps_solve_1D(PS_DATA potential) {
         //abs(F[N]) < F_threshold
 		
         if(fabs(F[N-1]) < F_threshold) {
+
+			PS_DATA wavefunction = ps_data_copy(potential); // copy the potential
+			ps_data_set_data(wavefunction, F); // Overwrite the potential with the wavefunction
+			
+			PS_SOLUTION *solution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
+			solution->energy = E;
+			solution->wavefunction = wavefunction;
+			
+			ps_list_add(solution_list, solution);
+			
             //print the energy and the WFN envelope to a file 
 			//bound_energies[bound_state_count++] = E;
-            printf("\t\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e printing to log file, %s \n", bound_state_count, E, F[N], F_threshold, LOG_FILENAME_BS);
-            
+            sprintf(log_message, "\t\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e printing to log file, %s \n", bound_state_count, E, F[N], F_threshold, LOG_FILENAME_BS);
+			ps_log(log_message);
+			
             FILE *pFile_E;
             char buffer_E[BUFSIZ];
             pFile_E = fopen(LOG_FILENAME_E, "a"); //append
@@ -283,7 +302,7 @@ int ps_solve_1D(PS_DATA potential) {
 	END:
     	
 	
-	return bound_state_count;
+	return solution_list;
 }
 
 //
@@ -311,10 +330,11 @@ PS_DATA test_potential_1D() {
 	int xsize = number_of_points;
 	double xstep = (well_width + barrier_width + barrier_width)/((double)number_of_points); //total width converted to cm divided by the number of points = width per point
 	int ysize = 1; //1D for now so only 1 "row"
-	double ystep = 0;
 	double Vb = 500.0; // meV barrier
 	
-	PS_DATA potential = ps_create_data(xsize, ysize, xstep, ystep);
+	PS_DATA potential = ps_data_create(ysize, xsize);
+	potential->xstep = 1; // This is temporary.  Jere and I have changed the file format to support non-uniform rectilinear grids
+		  				  // which means that each x and y value is specified and the dx must be queried at every point.
 	
 	//temporary local variables
 	int i;
@@ -351,7 +371,8 @@ int main(int argc, char **argv) {
 		PS_DATA potential = test_potential_1D();
 	
 		// Solve
-		int nfound = ps_solve_1D(potential);
+		PS_LIST solutions = ps_solve_1D(potential);
+		int nfound = ps_list_size(solutions);
 		printf("Found %i Bound Energies. Have a nice day!\n", nfound);	
 	
 		//clean up
