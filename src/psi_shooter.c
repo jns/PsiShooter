@@ -333,7 +333,7 @@ PS_DATA test_potential_1D() {
 	double Vb = 500.0; // meV barrier
 	
 	PS_DATA potential = ps_data_create(ysize, xsize);
-	potential->xstep = 1; // This is temporary.  Jere and I have changed the file format to support non-uniform rectilinear grids
+	potential->xstep = xstep; // This is temporary.  Jere and I have changed the file format to support non-uniform rectilinear grids
 		  				  // which means that each x and y value is specified and the dx must be queried at every point.
 	
 	//temporary local variables
