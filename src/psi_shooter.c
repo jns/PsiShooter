@@ -202,7 +202,7 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
 		F[1] = 0;
         G[1] = 1;
         
-		for(i=1; i<N-2; i++) {
+		for(i=1; i<N-1; i++) {
 			V = ps_data_value(potential, 0,i); //V[i]
 			F[i+1] = F_coeff * G[i] * m_eff + F[i-1]; //subbed in m_eff for m[i], To Do: support a position dependant mass by storing different masses at different locations (add to the PS_DATA structure probably)			
 			G[i+1] = G_coeff * F[i]*(V-E) + G[i-1];
@@ -267,7 +267,6 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
         //print F[i] to log
         //print G[i] to log
 		
-        printf("\t\tPrinting F to log file, %s \n", LOG_FILENAME_F);
         FILE *pFile_F;
         char buffer_F[BUFSIZ];
         pFile_F = fopen(LOG_FILENAME_F, "a"); //append
@@ -280,7 +279,6 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
             fclose(pFile_F); //fflush(pFile1); //closing flushes already
         }
 		
-        printf("\t\tPrinting G to log file, %s \n", LOG_FILENAME_G);
         FILE *pFile_G;
         char buffer_G[BUFSIZ];
         pFile_G = fopen(LOG_FILENAME_G, "a"); //append
@@ -368,8 +366,9 @@ int main(int argc, char **argv) {
 		printf("Found %i Bound Energies. Have a nice day!\n", nfound);	
 	
 		//clean up
-		ps_destroy_data(potential);
-
+		ps_data_destroy(potential);
+		ps_list_destroy_all(solutions);
+		
 	} else if (2 == argc) {
 		// Interpret argument as file to process
 
