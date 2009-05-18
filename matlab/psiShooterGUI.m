@@ -148,8 +148,9 @@ switch loadMenu_index
         
         %get the file path if none is specified in the text box
         if or(isempty(filePath),strcmp(filePath,'Input File Path'))
-            filePath = uigetfile({'*.*'});
-            set(handles.loadInput,'String',filePath);
+            [name,path] = uigetfile({'*.*'});
+            filePath = [path name];
+            set(handles.loadInput,'String',name);
         end
         
         %reformat default string into cell data structure (so we can have
