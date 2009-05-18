@@ -151,14 +151,11 @@ global layerList;
 for index = 1:length(layerList)
     dropBoxItems{index} = layerList(index).name;
 end
-<<<<<<< HEAD:matlab/getPotential.m
 wait = 0;
 for index = 1:100
     wait = wait+1; %for some reason, the gui tries to use getDropBoxItems
     %before it exists. So I'm making it wait for a bit doing nothing.
 end
-=======
->>>>>>> origin/josh:matlab/getPotential.m
 set(hObject,'String',dropBoxItems);
 
 %%
@@ -392,11 +389,7 @@ end
 
 %%
 
-<<<<<<< HEAD:matlab/getPotential.m
 function writeFile(X,Y,Data,path)
-=======
-function writeFile(X,Y,Data,fileName)
->>>>>>> origin/josh:matlab/getPotential.m
 %writeFile(X,Y,Data,fileName)
 
 if Y == 0
@@ -406,15 +399,9 @@ else
 end
 
 try
-<<<<<<< HEAD:matlab/getPotential.m
     fidP = fopen(path,'w','ieee-le.l64');
     if strcmp(fileName(end-3:end),'.txt')
         %ascii or unicode
-=======
-    if strcmp(fileName(end-3:end),'.txt')
-        %ascii or unicode
-        fidP = fopen(fileName,'w');
->>>>>>> origin/josh:matlab/getPotential.m
         fprintf(fidP,'%e\n',length(X));
         fprintf(fidP,'%e\n',yLength);
         fprintf(fidP,'%e ',X);
@@ -424,10 +411,6 @@ try
         fprintf(fidP,'%e ',Data);
     else
         %binary
-<<<<<<< HEAD:matlab/getPotential.m
-=======
-        fidP = fopen(fileName,'w');
->>>>>>> origin/josh:matlab/getPotential.m
         fwrite(fidP,length(X),'float64');
         fwrite(fidP,yLength,'float64');
         fwrite(fidP,X,'float64');

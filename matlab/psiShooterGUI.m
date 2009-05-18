@@ -506,11 +506,7 @@ for n = 1:4:nargin
         set(h(n),'edgealpha',0.7);
     end
 end
-<<<<<<< HEAD:matlab/psiShooterGUI.m
 rotate3d on;
-=======
-rotate3D on;
->>>>>>> origin/josh:matlab/psiShooterGUI.m
 hold off;
 'end';% a good place to stick a breakpoint for playing with the plots.
 %make sure to turn 'rotate3d on;'
@@ -528,11 +524,7 @@ function [potential,messages] = loadPotentialData(path)
 %will default to binary.
 
 try
-<<<<<<< HEAD:matlab/psiShooterGUI.m
     fidP = fopen(path,'r','ieee-le.l64');
-=======
-    fidP = fopen(path,'r');
->>>>>>> origin/josh:matlab/psiShooterGUI.m
 catch
     potential = [];
     messages = {'FILE FAILED TO LOAD'};
