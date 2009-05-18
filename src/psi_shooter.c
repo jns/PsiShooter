@@ -2,6 +2,7 @@
 #include "ps_constants.h"
 #include "ps_errors.h"
 #include "ps_data.h"
+#include "ps_data_io.h"
 #include "math.h"
 
 /*The Big To Do list:
@@ -339,7 +340,7 @@ PS_DATA test_potential_1D() {
 // PsiShooter program entry point
 int main(int argc, char **argv) {
 
-	char *msg;
+	char msg[256];
 	PS_DATA potential;
 	
 	if (1 == argc) {
