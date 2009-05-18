@@ -34,6 +34,7 @@ int ps_data_columns(PS_DATA data);
 /** Set the x and y values */
 int ps_data_set_x_values(PS_DATA data, double *x_values);
 int ps_data_set_y_values(PS_DATA data, double *y_values);
+int ps_data_set_x_value_at(PS_DATA data, int x, double x_value);
 
 /**
  * Query the x and y value

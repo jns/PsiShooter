@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 int main(int argc, char **argv) {
-	return read_ascii(argc, argv);
+	return read_print(argc, argv);
 }
 
 int create_write(int argc, char **argv) {

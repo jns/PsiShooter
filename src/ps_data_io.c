@@ -48,18 +48,18 @@ int ps_data_write_ascii(PS_DATA data, FILE *fptr) {
 	
 	fprintf(fptr, "%i\n", cols);
 	fprintf(fptr, "%i\n", rows);
-	for(i=0; i<rows;i++) {
+	for(i=0; i<cols;i++) {
 		fprintf(fptr, "%e", ps_data_xvalue_at(data, i));
-		if (rows-1 == i) {
+		if (cols-1 == i) {
 			fprintf(fptr, "\n");
 		} else {
 			fprintf(fptr, " ");
 		}
 	}
 
-	for(j=0; j<cols;j++) {
+	for(j=0; j<rows;j++) {
 		fprintf(fptr, "%e", ps_data_yvalue_at(data,j));
-		if (cols-1 == j) {
+		if (rows-1 == j) {
 			fprintf(fptr, "\n");
 		} else {
 			fprintf(fptr, " ");
@@ -150,7 +150,7 @@ PS_DATA ps_data_read_bin(FILE *fptr) {
 	free(d);
 
 	// Read in Y Values
-	d = (double*)malloc(sizeof(double)*cols);
+	d = (double*)malloc(sizeof(double)*rows);
 	for (j = 0; j < rows && PS_OK == ps_errno; j++) {
 		*(d+j) = ps_read_float64(fptr);		
 	}
@@ -168,8 +168,10 @@ PS_DATA ps_data_read_bin(FILE *fptr) {
 	for (i=0; i < rows; i++) {
 		for (j=0; j < cols; j++) {
 			d[i*cols+j] = ps_read_float64(fptr);
-			if (PS_OK != ps_errno) 
+			if (PS_OK != ps_errno) {
+				fprintf(stderr, "Error in ps_data_io#read_bin\n");
 				break;
+			}
 		}
 	}
 
@@ -193,7 +195,7 @@ double ps_read_float64(FILE *fptr) {
 	int i;
 	FLOAT64 value;
 	int nbytes = 1;
-	for (i=7; i>=0 && 1 == nbytes; i--) {
+	for (i=0; i<8 && 1 == nbytes; i++) {
 		nbytes = fread(&(value.c[i]), 1, 1, fptr);
 	}
 	
@@ -213,7 +215,7 @@ void ps_write_float64(FILE *fptr, double d) {
 	FLOAT64 value;
 	value.d = d;
 	int i;
-	for (i=7; i>=0; i--) {
+	for (i=0; i<8; i++) {
 		fwrite(&(value.c[i]), 1, 1, fptr);
 	}
 }

@@ -330,17 +330,18 @@ PS_DATA test_potential_1D() {
 	int i;
 	int err;
 	double V;
-	double x = 0;
+	double x;
 	
 	//Generate the potential, 
  	for (i = 0; i < xsize; i++) {	
-		if(xstep > barrier_width && xstep < (barrier_width+well_width)) 
-			err = ps_data_set_value_at_row_column(potential, 0, 0, i); //in the well
-        else 
-			err = ps_data_set_value_at_row_column(potential, Vb, 0, i);	//in the barriers
+		if(x > barrier_width && x < (barrier_width+well_width)) {
+			ps_data_set_value_at_row_column(potential, 0, 0, i); //in the well			
+		} else {
+			ps_data_set_value_at_row_column(potential, Vb, 0, i);	//in the barriers			
+		} 
+		ps_data_set_x_value_at(potential, i, x);
 		x += xstep;
 	}
-	
 	
 	return potential;	
  }
@@ -352,6 +353,7 @@ int main(int argc, char **argv) {
 
 	char msg[256];
 	PS_DATA potential;
+	int i;
 	
 	if (1 == argc) {
 
@@ -359,11 +361,25 @@ int main(int argc, char **argv) {
 		ps_log(msg);
 		//get a 1D test potential
 		PS_DATA potential = test_potential_1D();
+		FILE *vfile = fopen("V.dat", "w");
+		ps_data_write_bin(potential, vfile);
+		fclose(vfile);
 	
 		// Solve
 		PS_LIST solutions = ps_solve_1D(potential);
 		int nfound = ps_list_size(solutions);
 		printf("Found %i Bound Energies. Have a nice day!\n", nfound);	
+	
+		// Write out solutions
+		FILE *bsfile = fopen("BS.dat", "w");
+		PS_SOLUTION *s = ps_list_front(solutions);
+		while (s != NULL) {
+			// This just writes out the wavefunction. We didn't define a way to 
+			// write the energy with it yet.
+			ps_data_write_bin(s->wavefunction, bsfile);
+			s = ps_list_next(solutions);
+		}
+		fclose(bsfile);
 	
 		//clean up
 		ps_data_destroy(potential);

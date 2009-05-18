@@ -51,11 +51,11 @@ void ps_destroy_data(PS_DATA data) {
 }
 
 int ps_data_rows(PS_DATA data) {
-	return data->xsize;
+	return data->ysize;
 }
 
 int ps_data_columns(PS_DATA data) {
-	return data->ysize;
+	return data->xsize;
 }
 
 int ps_data_init_with_array(PS_DATA data, double *values, int nrows, int ncols) {
@@ -83,6 +83,10 @@ int ps_data_set_x_values(PS_DATA data, double *x_values) {
 int ps_data_set_y_values(PS_DATA data, double *y_values) {
 	memcpy(data->y_values, y_values, (data->ysize)*sizeof(double));
 	return PS_OK;
+}
+
+int ps_data_set_x_value_at(PS_DATA data, int x, double x_value) {
+	data->x_values[x] = x_value;
 }
 
 double ps_data_xvalue_at(PS_DATA data, int col) {
