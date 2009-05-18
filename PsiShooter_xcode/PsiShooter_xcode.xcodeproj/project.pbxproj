@@ -21,7 +21,7 @@
 		3DF2EA7A0FB62AC8003B6483 /* ps_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ps_data.h; path = ../src/ps_data.h; sourceTree = SOURCE_ROOT; };
 		3DF2EA7B0FB62AC8003B6483 /* ps_errors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ps_errors.h; path = ../src/ps_errors.h; sourceTree = SOURCE_ROOT; };
 		3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = psi_shooter.c; path = ../src/psi_shooter.c; sourceTree = SOURCE_ROOT; };
-		3DF2EA800FB62AF5003B6483 /* PsiShooter_xcode */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = PsiShooter_xcode; path = build/Debug/PsiShooter_xcode; sourceTree = "<group>"; };
+		3DF2EA800FB62AF5003B6483 /* PsiShooter_xcode */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PsiShooter_xcode; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */

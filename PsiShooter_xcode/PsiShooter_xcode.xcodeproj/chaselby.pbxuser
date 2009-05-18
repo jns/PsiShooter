@@ -1,5 +1,65 @@
 // !$*UTF8*$!
 {
+	3DA94FD50FC09F23009B3DFF /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */;
+		name = "psi_shooter.c: 88";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 1845;
+		vrLoc = 1895;
+	};
+	3DA94FDC0FC0C2EB009B3DFF /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 3DF2EA790FB62AC8003B6483 /* ps_data.c */;
+		name = "ps_data.c: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 768;
+		vrLoc = 0;
+	};
+	3DA94FDD0FC0C2EB009B3DFF /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 3DF2EA7A0FB62AC8003B6483 /* ps_data.h */;
+		name = "ps_data.h: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 1019;
+		vrLoc = 516;
+	};
+	3DA94FDE0FC0C2EB009B3DFF /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */;
+		name = "psi_shooter.c: 183";
+		rLen = 0;
+		rLoc = 10462;
+		rType = 0;
+		vrLen = 988;
+		vrLoc = 10025;
+	};
+	3DA94FDF0FC0C2EB009B3DFF /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 3DF2EA7A0FB62AC8003B6483 /* ps_data.h */;
+		name = "ps_data.h: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 1019;
+		vrLoc = 516;
+	};
+	3DA94FE00FC0C2EB009B3DFF /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */;
+		name = "psi_shooter.c: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 1169;
+		vrLoc = 10130;
+	};
 	3DF2EA6E0FB62AAD003B6483 /* Project object */ = {
 		activeBuildConfigurationName = Debug;
 		activeExecutable = 3DF2EA820FB62AF5003B6483 /* PsiShooter_xcode */;
@@ -13,12 +73,26 @@
 		ignoreBreakpointsInProjectsDict = {
 		};
 		perUserDictionary = {
+			PBXConfiguration.PBXFileTableDataSource3.PBXErrorsWarningsDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXErrorsWarningsDataSource_LocationID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					300,
+					444,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXErrorsWarningsDataSource_TypeID,
+					PBXErrorsWarningsDataSource_MessageID,
+					PBXErrorsWarningsDataSource_LocationID,
+				);
+			};
 			PBXConfiguration.PBXFileTableDataSource3.PBXFileTableDataSource = {
 				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
 				PBXFileTableDataSourceColumnSortingKey = PBXFileDataSource_Filename_ColumnID;
 				PBXFileTableDataSourceColumnWidthsKey = (
 					20,
-					341,
+					554,
 					20,
 					48,
 					43,
@@ -33,6 +107,22 @@
 					PBXFileDataSource_Errors_ColumnID,
 					PBXFileDataSource_Warnings_ColumnID,
 					PBXFileDataSource_Target_ColumnID,
+				);
+			};
+			PBXConfiguration.PBXFileTableDataSource3.PBXSymbolsDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXSymbolsDataSource_SymbolNameID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					16,
+					200,
+					50,
+					494.20849609375,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXSymbolsDataSource_SymbolTypeIconID,
+					PBXSymbolsDataSource_SymbolNameID,
+					PBXSymbolsDataSource_SymbolTypeID,
+					PBXSymbolsDataSource_ReferenceNameID,
 				);
 			};
 			PBXConfiguration.PBXTargetDataSource.PBXTargetDataSource = {
@@ -57,15 +147,21 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 263596717;
-			PBXWorkspaceStateSaveDate = 263596717;
+			PBXPerProjectTemplateStateSaveDate = 264281875;
+			PBXWorkspaceStateSaveDate = 264281875;
 		};
 		perUserProjectItems = {
-			3DF2EA8E0FB62B22003B6483 /* PBXTextBookmark */ = 3DF2EA8E0FB62B22003B6483 /* PBXTextBookmark */;
-			3DF2EA8F0FB62B22003B6483 /* PBXTextBookmark */ = 3DF2EA8F0FB62B22003B6483 /* PBXTextBookmark */;
-			3DF2EA9C0FB62B2F003B6483 /* PBXTextBookmark */ = 3DF2EA9C0FB62B2F003B6483 /* PBXTextBookmark */;
-			3DF2EAA00FB62D9C003B6483 /* PBXTextBookmark */ = 3DF2EAA00FB62D9C003B6483 /* PBXTextBookmark */;
-			3DF2EAA30FB62DF8003B6483 /* PBXTextBookmark */ = 3DF2EAA30FB62DF8003B6483 /* PBXTextBookmark */;
+			3DA94FD50FC09F23009B3DFF /* PBXTextBookmark */ = 3DA94FD50FC09F23009B3DFF /* PBXTextBookmark */;
+			3DA94FDC0FC0C2EB009B3DFF /* PBXTextBookmark */ = 3DA94FDC0FC0C2EB009B3DFF /* PBXTextBookmark */;
+			3DA94FDD0FC0C2EB009B3DFF /* PBXTextBookmark */ = 3DA94FDD0FC0C2EB009B3DFF /* PBXTextBookmark */;
+			3DA94FDE0FC0C2EB009B3DFF /* PBXTextBookmark */ = 3DA94FDE0FC0C2EB009B3DFF /* PBXTextBookmark */;
+			3DA94FDF0FC0C2EB009B3DFF /* PBXTextBookmark */ = 3DA94FDF0FC0C2EB009B3DFF /* PBXTextBookmark */;
+			3DA94FE00FC0C2EB009B3DFF /* PBXTextBookmark */ = 3DA94FE00FC0C2EB009B3DFF /* PBXTextBookmark */;
+			3DF2EA8E0FB62B22003B6483 = 3DF2EA8E0FB62B22003B6483 /* PBXTextBookmark */;
+			3DF2EA8F0FB62B22003B6483 = 3DF2EA8F0FB62B22003B6483 /* PBXTextBookmark */;
+			3DF2EA9C0FB62B2F003B6483 = 3DF2EA9C0FB62B2F003B6483 /* PBXTextBookmark */;
+			3DF2EAA00FB62D9C003B6483 = 3DF2EAA00FB62D9C003B6483 /* PBXTextBookmark */;
+			3DF2EAA30FB62DF8003B6483 = 3DF2EAA30FB62DF8003B6483 /* PBXTextBookmark */;
 		};
 		sourceControlManager = 3DF2EA720FB62AAD003B6483 /* Source Control */;
 		userBuildSettings = {
@@ -82,11 +178,33 @@
 		isa = PBXCodeSenseManager;
 		indexTemplatePath = "";
 	};
+	3DF2EA780FB62AC8003B6483 /* ps_constants.h */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {804, 593}}";
+			sepNavSelRange = "{681, 10}";
+			sepNavVisRange = "{0, 710}";
+			sepNavWindowFrame = "{{15, 52}, {687, 721}}";
+		};
+	};
+	3DF2EA790FB62AC8003B6483 /* ps_data.c */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {732, 1050}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRange = "{0, 768}";
+		};
+	};
+	3DF2EA7A0FB62AC8003B6483 /* ps_data.h */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {732, 910}}";
+			sepNavSelRange = "{234, 9}";
+			sepNavVisRange = "{274, 1021}";
+		};
+	};
 	3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {1200, 4928}}";
-			sepNavSelRange = "{5406, 0}";
-			sepNavVisRange = "{3442, 2791}";
+			sepNavIntBoundsRect = "{{0, 0}, {1608, 5040}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRange = "{10130, 1169}";
 		};
 	};
 	3DF2EA7F0FB62AF5003B6483 /* PsiShooter_xcode */ = {
@@ -144,7 +262,7 @@
 		fRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */;
 		name = "psi_shooter.c: 349";
 		rLen = 0;
-		rLoc = 15114;
+		rLoc = 0;
 		rType = 0;
 		vrLen = 299;
 		vrLoc = 14867;
@@ -154,7 +272,7 @@
 		fRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */;
 		name = "psi_shooter.c: 88";
 		rLen = 0;
-		rLoc = 5406;
+		rLoc = 0;
 		rType = 0;
 		vrLen = 2791;
 		vrLoc = 3442;
@@ -164,7 +282,7 @@
 		fRef = 3DF2EA7C0FB62AC8003B6483 /* psi_shooter.c */;
 		name = "psi_shooter.c: 88";
 		rLen = 0;
-		rLoc = 5406;
+		rLoc = 0;
 		rType = 0;
 		vrLen = 2791;
 		vrLoc = 3442;
