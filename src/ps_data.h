@@ -9,8 +9,9 @@
 typedef struct {
 	unsigned int xsize;
 	unsigned int ysize;
-	double xstep;
-	double ystep;
+	double xstep; // temporary for the sake of not upsetting psi-shooter
+	double *x_values;
+	double *y_values;
 	double *data;
 } PS_DATA_T;
 
@@ -19,13 +20,27 @@ typedef PS_DATA_T* PS_DATA;
 #define ps_data_value(ps_data,r,c) (ps_data->data[ps_data->xsize*r + c])
 
 /** Create and destroy functions **/
-PS_DATA ps_create_data(unsigned int xsize, unsigned int ysize, double xstep, double ystep);
-void ps_destroy_data(PS_DATA data);
+PS_DATA ps_create_data(unsigned int xsize, unsigned int ysize, double xstep, double ystep); // DEPRECATED use ps_data_create
+PS_DATA ps_data_create(unsigned int rows, unsigned int cols);
+PS_DATA ps_data_copy(PS_DATA data);
+
+void ps_destroy_data(PS_DATA data); // DEPRECATED use ps_data_destroy
+void ps_data_destroy(PS_DATA data);
 	
 /** Query the grid size **/
 int ps_data_rows(PS_DATA data);
 int ps_data_columns(PS_DATA data);
 
+/** Set the x and y values */
+int ps_data_set_x_values(PS_DATA data, double *x_values);
+int ps_data_set_y_values(PS_DATA data, double *y_values);
+
+/**
+ * Query the x and y value
+ */
+double ps_data_xvalue_at(PS_DATA data, int col);
+double ps_data_yvalue_at(PS_DATA data, int row);
+	
 /** 
  * Initialize the data from a two-dimensional array of the correct size. 
  * Returns 0 upon success, error otherwise.

@@ -12,6 +12,9 @@
  *     note: A position dependant mass fucks up the hermicity of H (hamiltonian operator)
  */
 
+void ps_log(char *msg) {
+	fprintf(stdout, msg);
+}
 
 //
 // Solve for the bound energies given by the potential. 
@@ -198,7 +201,6 @@ int ps_solve_1D(PS_DATA potential) {
 				printf("BADNESS.\n");
 				goto END;
 			}
-			
 			F[i+1] = F_coeff * G[i] * m_eff + F[i-1]; //subbed in m_eff for m[i], To Do: support a position dependant mass by storing different masses at different locations (add to the PS_DATA structure probably)			
 			G[i+1] = G_coeff * F[i]*(V-E) + G[i-1];
         }
@@ -336,16 +338,42 @@ PS_DATA test_potential_1D() {
 //
 // PsiShooter program entry point
 int main(int argc, char **argv) {
-	//get a 1D test potential
-	PS_DATA potential = test_potential_1D();
+
+	char *msg;
+	PS_DATA potential;
 	
-	// Solve
-	int nfound = ps_solve_1D(potential);
-	printf("Found %i Bound Energies. Have a nice day!\n", nfound);	
+	if (1 == argc) {
+
+		sprintf(msg, "No file specified. Using builtin potential.\n");
+		ps_log(msg);
+		//get a 1D test potential
+		PS_DATA potential = test_potential_1D();
 	
-	//clean up
-	ps_destroy_data(potential);
+		// Solve
+		int nfound = ps_solve_1D(potential);
+		printf("Found %i Bound Energies. Have a nice day!\n", nfound);	
 	
+		//clean up
+		ps_destroy_data(potential);
+
+	} else if (2 == argc) {
+		// Interpret argument as file to process
+
+		FILE *infile = fopen(argv[1], "r");
+		if (infile == NULL) {
+			sprintf(msg, "Error opening file '%s'\n", argv[1]);
+			ps_log(msg);
+		} else {
+			sprintf(msg, "Using potential from file '%s'\n", argv[1]);
+			ps_log(msg);
+
+			potential = ps_data_read_bin(infile);
+			fclose(infile);
+			
+			sprintf(msg, "Cannot continue. I don't know what energies to try.\n");
+			ps_log(msg);			
+		}
+	}
 	return 0;
 }
 
