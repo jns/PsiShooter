@@ -101,3 +101,11 @@ void ps_list_add(PS_LIST list, PS_SOLUTION *solution) {
 	list->current = newnode;
 		
 }
+
+void ps_list_add_all(PS_LIST dest_list, PS_LIST src_list) {
+	PS_SOLUTION *s = ps_list_front(src_list);
+	while (s != NULL) { 
+		ps_list_add(dest_list, s);
+		s = ps_list_next(src_list);
+	}
+}
