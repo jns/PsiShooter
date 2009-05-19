@@ -400,7 +400,7 @@ end
 
 try
     fidP = fopen(path,'w','ieee-le.l64');
-    if strcmp(fileName(end-3:end),'.txt')
+    if strcmp(path(end-3:end),'.txt')
         %ascii or unicode
         fprintf(fidP,'%e\n',length(X));
         fprintf(fidP,'%e\n',yLength);
