@@ -134,7 +134,7 @@ void ps_log(char *msg) {
 //(13) En = hbar^2*pi^2*n^2/(2*m*L^2)  ... where n=1 is the ground state
 // The infinite square well solutions are used as a guess to find boundstates in the 
 // finite wells
-PS_LIST ps_solve_1D(PS_DATA potential) {
+PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 
 	char log_message[256];
 	ps_log("PsiShooter -- a shooting method solver for the time independant Schrodinger equation under the effective mass approximation.\n");
@@ -144,19 +144,13 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
 
     ps_log("Iterate through Energy Eigenvalues to find the lowest bound state.\n");      
 	
-	//TO DO: the energies being searched will not stay hard coded. We will probably define a structure to pass in that 
-	//controls the energy range that will be searched for solutions
-	#define N_ITERATIONS 1000
-	double Emin = ps_data_min_value(potential);
-	double Emax = ps_data_max_value(potential);
-	double Estep = (Emax-Emin)/N_ITERATIONS;
 
 	// wavefunction storage.  
 	int N = potential->xsize;
 	double dx = potential->xstep; //cm, size of differential length (TODO: Compute this inside loop)
 	int N_threshold = 100; //point at which the threshold magnitude is taken. Its a kludgy way to do it, but for now its fine. To Do: Make this more general
 	double F[N]; //the envelope function (wavefunction)
-	double f_cache[N_ITERATIONS]; // We cache the last value of the envelope for each solution
+	double f_cache[params->n_iter]; // We cache the last value of the envelope for each solution
 	double G[N]; //the aux function
 	
 	//F
@@ -180,13 +174,14 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
     int bound_state_count = 0;	
     int threshold_set_flag = 0; 
     double F_threshold = 0;
-	int i = 0, iter=0;
-	double E; //meV, Current energy
+	int i, iter;
+	double E = params->energy_min;
+	double Estep = (params->energy_max - params->energy_min)/(params->n_iter); 
 	double V; //meV, Current potential
 	double m_eff = MASS_ELECTRON*M_EFF_GAAS;// To Do: make the electron mass be part of the structure that we are simulating. i.e. in general it can be a position dependant quantity just like the potential (think heterostructures with different band edge curvatures)
 	int err;
 		
-	for(E = Emin; E < Emax; E+=Estep) {
+	for (iter = 0; iter < params->n_iter; iter++) {
 		
         F[0] = 0;
         G[0] = 1;
@@ -226,8 +221,10 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
             sprintf(log_message, "\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[N], F_threshold);
 			ps_log(log_message);
         }
+
+		// Increment the energy
+		E += Estep;
         
-		iter++; // Increment the iteration 
     }    	
 	
 	return solution_list;
@@ -303,8 +300,14 @@ int main(int argc, char **argv) {
 		ps_data_write_bin(potential, vfile);
 		fclose(vfile);
 	
+		// Setup solution parameters
+		PS_SOLVE_PARAMETERS params;
+		params.energy_min = ps_data_min_value(potential);
+		params.energy_max = ps_data_max_value(potential);
+		params.n_iter = 1000; // The number of energies to try
+	
 		// Solve
-		PS_LIST solutions = ps_solve_1D(potential);
+		PS_LIST solutions = ps_solve_1D(potential, &params);
 		int nfound = ps_list_size(solutions);
 		printf("Found %i Bound Energies. Have a nice day!\n", nfound);	
 	

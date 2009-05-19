@@ -108,9 +108,9 @@ int ps_data_value_at_row_column(PS_DATA data, unsigned int row, unsigned int col
 
 double ps_data_max_value(PS_DATA data) {
 	int n = data->xsize*data->ysize;
-	int i;
+	int i = 0;
 	double max = data->data[i];
-	for(i=0; i<n; i++) {
+	for(i=1; i<n; i++) {
 		if (data->data[i] > max) { max=data->data[i]; }
 	}
 	return max;
@@ -118,9 +118,9 @@ double ps_data_max_value(PS_DATA data) {
 
 double ps_data_min_value(PS_DATA data) {
 	int n = data->xsize*data->ysize;
-	int i;
+	int i = 0;
 	double min = data->data[i];
-	for(i=0; i<n; i++) {
+	for(i=1; i<n; i++) {
 		if (data->data[i] < min) { min=data->data[i]; }
 	}
 	return min;

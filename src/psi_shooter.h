@@ -9,8 +9,7 @@ typedef struct {
 typedef struct {
 	double energy_min; // The minimum energy to try
 	double energy_max; // The maximum energy to try
-	int n_iter_coarse; // The number of iterations to try on the coarse pass
-	int n_iter_fine; // The number of iterations to try on the fine pass
+	int n_iter;
 	} PS_SOLVE_PARAMETERS;
 
 #endif
