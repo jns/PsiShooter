@@ -147,13 +147,13 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
 	//TO DO: the energies being searched will not stay hard coded. We will probably define a structure to pass in that 
 	//controls the energy range that will be searched for solutions
 	#define N_ITERATIONS 1000
-	double Emin = 0; //eV
-	double Emax = 0.5*EV_TO_ERGS; //eV
-	double Estep = (Emax-Emin)/N_ITERATIONS; //meV
+	double Emin = ps_data_min_value(potential);
+	double Emax = ps_data_max_value(potential);
+	double Estep = (Emax-Emin)/N_ITERATIONS;
 
 	// wavefunction storage.  
 	int N = potential->xsize;
-	double dx = potential->xstep; //cm, size of differential length
+	double dx = potential->xstep; //cm, size of differential length (TODO: Compute this inside loop)
 	int N_threshold = 100; //point at which the threshold magnitude is taken. Its a kludgy way to do it, but for now its fine. To Do: Make this more general
 	double F[N]; //the envelope function (wavefunction)
 	double f_cache[N_ITERATIONS]; // We cache the last value of the envelope for each solution
@@ -175,7 +175,7 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
 	//rearrange                  -->  G[x+dx] = (2dx)*F[x]*2*(V[x]-E)/h_bar^2 + G[x-dx]
 	//convert to c style         -->  G[i+1] = 4*dx/hbar^2 * F[i]*(V[i]-E) + G[i-1]
 	//                                G[i+1] = G_coeff * F[i]*(V[i]-E) + G[i-1]
-	double G_coeff = 4*dx/(HBAR_PLANCK*HBAR_PLANCK); //handy prefactor that would otherwise be computed for every point evaluated 
+	double G_coeff = 4*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
 
     int bound_state_count = 0;	
     int threshold_set_flag = 0; 
@@ -219,10 +219,10 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
 			solution->energy = E;
 			solution->wavefunction = wavefunction;
 			
+			// Add the solution to the list of bound states
 			ps_list_add(solution_list, solution);
-			
-            //print the energy and the WFN envelope to a file 
-			//bound_energies[bound_state_count++] = E;
+
+			// print a log message
             sprintf(log_message, "\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[N], F_threshold);
 			ps_log(log_message);
         }

@@ -79,4 +79,10 @@ int ps_data_value_at_row_column(PS_DATA data, unsigned int row, unsigned int col
  */
 int ps_data_value_at_x_y(PS_DATA data, double x, double y, double *val);
 
+
+/**
+ * Find the extreme values in the data 
+ */
+double ps_data_max_value(PS_DATA data);
+double ps_data_min_value(PS_DATA data);
 #endif

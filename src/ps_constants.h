@@ -31,6 +31,9 @@
 //  Reduced Planck's Constant  [erg s]
 #define HBAR_PLANCK 1.05459e-27
 
+// Reduced Planck's Constant Squared [erg s]^2
+#define HBAR_PLANCK_SQ 1.1121600681e-54
+
 // Conversion factor ev -> ergs
 #define EV_TO_ERGS 1.60217646e-12
 
