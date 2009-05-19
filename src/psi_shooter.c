@@ -160,7 +160,9 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//rearrange                  -->  F[x+dx] = (2dx)*G[x]/M[x] + F[x-dx]
 	//convert to c style         -->  F[i+1] = (2dx)*G[i]*m[i] + F[i-1]
 	//                                F[i+1] = F_coeff*G[i]*m[i] + F[i-1]
-	double F_coeff = 2*dx; //handy prefactor that would otherwise be for every point evaluated
+	double F_coeff = dx; //handy prefactor that would otherwise be for every point evaluated
+	//from dx to 2*dx jh sometime in may
+	
 	
 	//G
 	//intial eqn                 -->  Div*G = F * 2*(V-E)/h_bar^2
@@ -169,8 +171,8 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//rearrange                  -->  G[x+dx] = (2dx)*F[x]*2*(V[x]-E)/h_bar^2 + G[x-dx]
 	//convert to c style         -->  G[i+1] = 4*dx/hbar^2 * F[i]*(V[i]-E) + G[i-1]
 	//                                G[i+1] = G_coeff * F[i]*(V[i]-E) + G[i-1]
-	double G_coeff = 4*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
-
+	double G_coeff = 2*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
+//from 4*dx to 2*dx jh sometime in may
     int bound_state_count = 0;	
     int threshold_set_flag = 0; 
     double F_threshold = 0;
@@ -190,8 +192,8 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
         
 		for(i=1; i<N-1; i++) {
 			V = ps_data_value(potential, 0,i); //V[i]
-			F[i+1] = F_coeff * G[i] * m_eff + F[i-1]; //subbed in m_eff for m[i], To Do: support a position dependant mass by storing different masses at different locations (add to the PS_DATA structure probably)			
-			G[i+1] = G_coeff * F[i]*(V-E) + G[i-1];
+			F[i+1] = F_coeff * G[i] * m_eff + F[i]; //subbed in m_eff for m[i], To Do: support a position dependant mass by storing different masses at different locations (add to the PS_DATA structure probably)			
+			G[i+1] = G_coeff * F[i]*(V-E) + G[i];
         }
 		f_cache[iter] = F[N-1];
 		
