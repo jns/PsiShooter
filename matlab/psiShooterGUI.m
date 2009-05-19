@@ -177,11 +177,11 @@ switch loadMenu_index
         cla;%clear the plot window
         if isempty(potential.x)
             return
-        elseif or(length(potential.x)==1,length(potential.y)==1)
+        elseif or(isempty(potential.x),isempty(potential.y))
             if length(potential.x) == 1
-                visualize1D(potential.y,potential.data,'red');
+                visualize1D(potential.y,potential.data,'red',0);
             else
-                visualize1D(potential.x,potential.data,'red');
+                visualize1D(potential.x,potential.data,'red',0);
             end
         elseif and(length(potential.x)>1,length(potential.y)>1)
             visualize2D(potential.x,potential.y,potential.data,0)
@@ -375,29 +375,47 @@ filePath = [path name];
 currSysMessText =[{['Loading Solutions in ' name]};currSysMessText];
 
 [data,messages] = loadData(filePath);
-if ~isempty(currSysMessText)
-    currSysMessText =[messages;currSysMessText];
-    set(handles.systemMessages, 'String', currSysMessText);
+currSysMessText =[messages;currSysMessText];
+
+[energies,messages] = loadEnergies([path 'E.txt']);
+currSysMessText =[messages;currSysMessText];
+if isempty(energies)
+    energies(1:length(data)) = [1:length(data)];
 end
+if length(energies) ~= length(data)
+    currSysMessText =[{'Different number of bound states'}; ...
+        {'found than solutions found in file'};currSysMessText];
+end
+
+set(handles.systemMessages, 'String', currSysMessText);
 
 try
     cla;%clear the plot window
     if isempty(data(1).x)
         return
     elseif or(length(data(1).x)==1,length(data(1).y)==1)
-        if length(data.x) == 1
+        if length(data(1).x) == 1
         solInput = [{data(1).y},...
-            {zeros(length(data(1).x),length(data(1).y))},{0}];
+            {zeros(1,length(data(1).y))},{0}];
             for index = 1:length(data)
                 solInput = [solInput,{data(index).y}, ...
-                    {data(index).data},{'red'},{0}];
+                    {data(index).data},{'red'},{energies(index)}];
             end
         else
         solInput = [{data(1).x},...
-            {zeros(length(data(1).x),length(data(1).y))},{0}];
+            {zeros(1,length(data(1).x))},{'black'},{0}];
             for index = 1:length(data)
+                if index == 1%Set the colors for each fucntion.
+                    %This should be done with a function, but here's a
+                    %quick soltion.
+                    color = 'red';
+                elseif index == 2
+                    color = 'green';
+                else
+                    color = 'blue';
+                end
                 solInput = [solInput,{data(index).x}, ...
-                    {data(index).data},{'red'},{0}];
+                    {data(index).data},{color},{energies(index)}];
             end
         end
         visualize1D(solInput);
@@ -406,12 +424,12 @@ try
             {zeros(length(data(1).x),length(data(1).y))},{0}];
         for index = 1:length(data)
             solInput = [solInput,{data(index).x},{data(index).y}, ...
-                {data(index).data},{1}];
+                {data(index).data},{energies(index)}];
         end
         visualize2D(solInput)
+        set(handles.rotateEnable,'Enable','on');
     end
     %Enable the plot control toggle buttons
-    set(handles.rotateEnable,'Enable','on');
     set(handles.panEnable,'Enable','on');
     set(handles.zoomEnable,'Enable','on');
 catch
@@ -435,7 +453,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
+%%
 
 
 function zoomEnable_Callback(hObject, eventdata, handles)
@@ -466,7 +484,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
+%%
 
 function panEnable_Callback(hObject, eventdata, handles)
 % hObject    handle to panEnable (see GCBO)
@@ -495,6 +513,8 @@ function panEnable_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+%%
 
 function rotateEnable_Callback(hObject, eventdata, handles)
 % hObject    handle to rotateEnable (see GCBO)
@@ -558,16 +578,20 @@ if mod(narginC,4) ~= 0 && narginC ~= 0;
     return;
 end
 
-for n = 1:4:nargin
+for n = 1:4:narginC
     X(:,ceil(n/4)) = vararginC{n};
     Y(:,ceil(n/4)) = vararginC{n+1};
+    if n > 1
+        %Normalize the 1D plot values the Y values
+        Y(:,ceil(n/4)) = Y(:,ceil(n/4))/max(Y(1:ceil(length(Y(:,ceil(n/4)))/2),ceil(n/4)));
+    end
     color{ceil(n/4)} = vararginC{n+2};
     offset{ceil(n/4)} = vararginC{n+3};
 end
 
 %axes(handles.simPlot);
-for n = 1:1:nargin/3
-    plot(X(:,n),Y(:,n)+offset(n),color{n})
+for n = 1:1:narginC/4
+    plot(X(:,n),Y(:,n)+offset{n},color{n})
     hold on;
 end
 hold off
@@ -629,6 +653,22 @@ hold off;
 'end';% a good place to stick a breakpoint for playing with the plots.
 %make sure to turn 'rotate3d on;'
 
+%%
+
+function [energies,messages] = loadEnergies(path)
+%function energies = loadEnergies(path)
+try
+    fidP = fopen(path,'r','ieee-le.l64');
+    header = fgetl(fidP);
+    energies = fscanf(fidP,'%f');
+    messages = {'Solution loaded Successfully'};
+catch
+    energies = [];
+    messages = {'Energy File Failed to load'};
+    return;
+end
+
+fclose(fidP);
 
 %%
 
@@ -645,7 +685,7 @@ try
     fidP = fopen(path,'r','ieee-le.l64');
 catch
     data = [];
-    messages = {'FILE FAILED TO LOAD'};
+    messages = {'DATA FILE FAILED TO LOAD'};
     return
 end
 if fidP == -1
@@ -668,22 +708,48 @@ try
             yNum(index) = fscanf(fidP,'%e',1);
             data(index).x = fscanf(fidP,'%e',xNum(index));
             data(index).y = fscanf(fidP,'%e',yNum(index));
-            data(index).data = fscanf(fidP,'%e',[xNum(index),yNum(index)]);
-            if size(data.data,1)*size(data.data,2) ~= xNum(index)*yNum(index)
-                messages =[{'DATA MISLOADED (size != xNum*yNum)'};...
-                    {'Is your file formatted correctly?'};...
-                    {'It might not like how your decimal numbers are formatted'}];
+            if yNum(index) == 0
+                data(index).data = fscanf(fidP,'%e',[xNum(index),1]);
+                if size(data.data,1)*size(data.data,2) ~= xNum(index)*yNum(index)
+                    messages =[{'DATA MISLOADED (size != xNum*yNum)'};...
+                        {'Is your file formatted correctly?'};...
+                        {'It might not like how your decimal numbers are formatted'}];
+                end
+            else
+                data(index).data = fscanf(fidP,'%e',[xNum(index),yNum(index)]);
+                if size(data.data,1)*size(data.data,2) ~= xNum(index)*yNum(index)
+                    messages =[{'DATA MISLOADED (size != xNum*yNum)'};...
+                        {'Is your file formatted correctly?'};...
+                        {'It might not like how your decimal numbers are formatted'}];
+                end
+            end
+            if isempty(xNum)
+                messages ={'DATA MISLOADED. xNum is empty...'};
             end
         else
             %binary
             xNum(index) = fread(fidP,1,'float64');
+            if(xNum(1) < 1) %If it looks like the file is wrong endian,
+                %close the file and re-open it with little endian.
+                fclose(fidP);
+                fidP = fopen(path,'r','ieee-be.l64');
+                xNum(index) = fread(fidP,1,'float64');
+            end
             yNum(index) = fread(fidP,1,'float64');
             data(index).x = fread(fidP,xNum(index),'float64');
             data(index).y = fread(fidP,yNum(index),'float64');
-            data(index).data = fread(fidP,[xNum(index),yNum(index)],'float64');
-            if size(data.data,1)*size(data.data,2) ~= xNum(index)*yNum(index)
-                messages =[{'DATA MISLOADED (size != xNum*yNum)'};...
-                    {'Is your file formatted correctly?'}];
+            if or(yNum(index) == 0, yNum(index) == 1)
+                data(index).data = fread(fidP,[xNum(index),1],'float64');
+                if size(data(index).data,1)*1 ~= xNum(index)*1
+                    messages =[{'DATA MISLOADED (size != xNum*yNum)'};...
+                        {'Is your file formatted correctly?'}];
+                end
+            else
+                data(index).data = fread(fidP,[xNum(index),yNum(index)],'float64');
+                if size(data(index).data,1)*size(data(index).data,2) ~= xNum(index)*yNum(index)
+                    messages =[{'DATA MISLOADED (size != xNum*yNum)'};...
+                        {'Is your file formatted correctly?'}];
+                end
             end
             if isempty(xNum)
                 messages =[{'DATA MISLOADED'};...

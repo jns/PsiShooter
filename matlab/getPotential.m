@@ -362,13 +362,22 @@ for index = 2:length(layerData)
 end
 
 if geometrySelect_index == 6%Just 1-D
-    meshGen.Data = layerData(1).V;%load the potential function
-    for index = 1:length(layerData)
-        %rounds boundaries up to the nearest whole number index. Will
-        %overestimate the width of the boundaries.
-        meshGen.Data(end:end+ceil(meshResolution* ...
-            layerData(index).thickness)) = layerData(index).V;
+    meshGen.Data = zeros(1,length(meshGen.X));
+    for indX = 1:length(meshGen.X)
+        for index = 1:length(layerData)
+            if indX*meshResolution < thickness(index)
+                meshGen.Data(indX) = layerData(index).V;
+                break;
+            end
+        end
     end
+%     meshGen.Data = layerData(1).V;%load the potential function
+%     for index = 1:length(layerData)
+%         %rounds boundaries up to the nearest whole number index. Will
+%         %overestimate the width of the boundaries.
+%         meshGen.Data(end:end+ceil(meshResolution* ...
+%             layerData(index).thickness)) = layerData(index).V;
+%     end
 elseif geometrySelect_index == 1 %circular symmetry
     meshGen.Data = zeros(length(meshGen.X),length(meshGen.Y));
     %Go through each and every point and
