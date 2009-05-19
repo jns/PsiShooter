@@ -154,15 +154,17 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
 	
 	//TO DO: the energies being searched will not stay hard coded. We will probably define a structure to pass in that 
 	//controls the energy range that will be searched for solutions
-	double Emin = 0; //meV
-	double Emax = 500; //meV
-	double Estep = (Emax-Emin)/1000; //meV
+	#define N_ITERATIONS 1000
+	double Emin = 0; //eV
+	double Emax = 0.5*EV_TO_ERGS; //eV
+	double Estep = (Emax-Emin)/N_ITERATIONS; //meV
 
 	// wavefunction storage.  
 	int N = potential->xsize;
 	double dx = potential->xstep; //cm, size of differential length
-	int N_threshold = 20; //point at which the threshold magnitude is taken. Its a kludgy way to do it, but for now its fine. To Do: Make this more general
+	int N_threshold = 100; //point at which the threshold magnitude is taken. Its a kludgy way to do it, but for now its fine. To Do: Make this more general
 	double F[N]; //the envelope function (wavefunction)
+	double f_cache[N_ITERATIONS]; // We cache the last value of the envelope for each solution
 	double G[N]; //the aux function
 	
 	//F
@@ -186,7 +188,7 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
     int bound_state_count = 0;	
     int threshold_set_flag = 0; 
     double F_threshold = 0;
-	int i = 0;
+	int i = 0, iter=0;
 	double E; //meV, Current energy
 	double V; //meV, Current potential
 	double m_eff = MASS_ELECTRON*M_EFF_GAAS;// To Do: make the electron mass be part of the structure that we are simulating. i.e. in general it can be a position dependant quantity just like the potential (think heterostructures with different band edge curvatures)
@@ -194,7 +196,7 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
 		
 	for(E = Emin; E < Emax; E+=Estep) {
 
-        sprintf(log_message,"\tE=%g meV\n", E);
+        sprintf(log_message,"\tE=%g meV\n", E/EV_TO_ERGS);
 		ps_log(log_message);
 		
         F[0] = 0;
@@ -207,7 +209,8 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
 			F[i+1] = F_coeff * G[i] * m_eff + F[i-1]; //subbed in m_eff for m[i], To Do: support a position dependant mass by storing different masses at different locations (add to the PS_DATA structure probably)			
 			G[i+1] = G_coeff * F[i]*(V-E) + G[i-1];
         }
-        
+		f_cache[iter] = F[N-1];
+		
         sprintf(log_message, "\tF[N-1]=%g\n", F[N-1]);
 		ps_log(log_message);
 		
@@ -217,25 +220,28 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
             sprintf(log_message, "\tSetting boundry value threshold for F_threshold=%e, which is the value of F @ point N=%d (1/2 through the first barrier for the first \"shot\"), \n", F_threshold, N_threshold);
 			ps_log(log_message);
             threshold_set_flag = 1; 
+			f_cache[iter+1] = f_cache[iter]; // TO avoid problems on the first solution. 
         }   
         
         //printf("\tF[N]=%e\n", F[N/2]);
         //abs(F[N]) < F_threshold
 		
-        if(fabs(F[N-1]) < F_threshold) {
+        // if(fabs(F[N-1]) < F_threshold) {
+		// test for a sign crossing
+		if ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0)) {
 
 			PS_DATA wavefunction = ps_data_copy(potential); // copy the potential
 			ps_data_set_data(wavefunction, F); // Overwrite the potential with the wavefunction
 			
 			PS_SOLUTION *solution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
-			solution->energy = E;
+			solution->energy = E/EV_TO_ERGS;
 			solution->wavefunction = wavefunction;
 			
 			ps_list_add(solution_list, solution);
 			
             //print the energy and the WFN envelope to a file 
 			//bound_energies[bound_state_count++] = E;
-            sprintf(log_message, "\t\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e printing to log file, %s \n", bound_state_count, E, F[N], F_threshold, LOG_FILENAME_BS);
+            sprintf(log_message, "\t\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e printing to log file, %s \n", bound_state_count, solution->energy, F[N], F_threshold, LOG_FILENAME_BS);
 			ps_log(log_message);
 			
             FILE *pFile_E;
@@ -262,7 +268,8 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
             }
         }
         
-
+		iter++; // Increment the iteration 
+		
 		//Output printf files
         //print F[i] to log
         //print G[i] to log
@@ -320,7 +327,7 @@ PS_DATA test_potential_1D() {
 	int xsize = number_of_points;
 	double xstep = (well_width + barrier_width + barrier_width)/((double)number_of_points); //total width converted to cm divided by the number of points = width per point
 	int ysize = 1; //1D for now so only 1 "row"
-	double Vb = 500.0; // meV barrier
+	double Vb = 0.5*EV_TO_ERGS; // eV barrier
 	
 	PS_DATA potential = ps_data_create(xsize, ysize);
 	potential->xstep = xstep; // This is temporary.  Jere and I have changed the file format to support non-uniform rectilinear grids

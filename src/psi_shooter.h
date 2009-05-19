@@ -6,5 +6,9 @@ typedef struct {
 	PS_DATA wavefunction;
 	} PS_SOLUTION;
 
+typedef struct {
+	double energy_min; // The minimum energy to try
+	double energy_max; // The maximum energy to try
+	} PS_SOLVE_PARAMETERS;
 
 #endif
