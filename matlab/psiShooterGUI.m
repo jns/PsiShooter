@@ -22,7 +22,7 @@ function varargout = psiShooterGUI(varargin)
 
 % Edit the above text to modify the response to help psiShooterGUI
 
-% Last Modified by GUIDE v2.5 11-May-2009 20:19:34
+% Last Modified by GUIDE v2.5 19-May-2009 09:59:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,10 +55,10 @@ function psiShooterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to psiShooterGUI (see VARARGIN)
 
 %Global data set
-global potential psi;
+global data psi;
 %clear the global variables in case this program is being run twice in the
 %same instance of matlab.
-potential = [];
+data = [];
 psi = [];
 
 % Choose default command line output for psiShooterGUI
@@ -138,7 +138,7 @@ function loadButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 axes(handles.simPlot);%set up to plot on the main plot window
-global potential; %access global potential variable
+global data; %access global potential variable
 
 loadMenu_index = get(handles.loadMenu, 'Value');
 currSysMessText = get(handles.systemMessages, 'String');
@@ -166,7 +166,8 @@ switch loadMenu_index
         set(handles.systemMessages, 'String', currSysMessText);
         
         %Get the potential
-        [potential,messages] = loadPotentialData(filePath);
+        [data,messages] = loadData(filePath);
+        potential = data(1);
         
         if ~isempty(messages)
             currSysMessText =[messages;currSysMessText];
@@ -185,6 +186,10 @@ switch loadMenu_index
         elseif and(length(potential.x)>1,length(potential.y)>1)
             visualize2D(potential.x,potential.y,potential.data,0)
         end
+        %Enable the plot control toggle buttons
+        set(handles.rotateEnable,'Enable','on');
+        set(handles.panEnable,'Enable','on');
+        set(handles.zoomEnable,'Enable','on');
         
     case 2
         set(handles.loadInput,'String','LOAD THE FILE YOU CREATED');
@@ -193,13 +198,17 @@ switch loadMenu_index
     case 4
         currSysMessText =[{'Load Default Potential'};currSysMessText];
         set(handles.systemMessages, 'String', currSysMessText);
-        potential.x = [1,2,3,4,5,6,7,8,9];
-        potential.y = [1,2,3,4,5,6,7,8,9];
-        potential.data = [5,5,5,5,5,5,5,5,5;5,4,4,4,4,4,4,4,5;...
+        data.x = [1,2,3,4,5,6,7,8,9];
+        data.y = [1,2,3,4,5,6,7,8,9];
+        data.data = [5,5,5,5,5,5,5,5,5;5,4,4,4,4,4,4,4,5;...
             5,4,3,2,2,2,3,4,5;5,4,2,2,1,2,2,4,5;5,4,2,1,1,1,2,4,5;...
             5,4,2,2,1,2,2,4,5;5,4,3,2,2,2,3,4,5;5,4,4,4,4,4,4,4,5;...
             5,5,5,5,5,5,5,5,5];
-        visualize2D(potential.x,potential.y,potential.data,0)
+        visualize2D(data.x,data.y,data.data,0)
+        %Enable the plot control toggle buttons
+        set(handles.rotateEnable,'Enable','on');
+        set(handles.panEnable,'Enable','on');
+        set(handles.zoomEnable,'Enable','on');
 end
 
 guidata(hObject,handles)
@@ -345,18 +354,78 @@ end
 
 
 
-function edit3_Callback(hObject, eventdata, handles)
-% hObject    handle to edit3 (see GCBO)
+function loadSolutionButton_Callback(hObject, eventdata, handles)
+% hObject    handle to loadSolutionButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit3 as text
-%        str2double(get(hObject,'String')) returns contents of edit3 as a double
+% Hints: get(hObject,'String') returns contents of loadSolutionButton as text
+%        str2double(get(hObject,'String')) returns contents of loadSolutionButton as a double
+
+currSysMessText = get(handles.systemMessages, 'String');
+
+if ~iscell(currSysMessText)
+    temp = currSysMessText;
+    clear('currSysMessText');
+    currSysMessText{1} = temp;
+end
+
+[name,path] = uigetfile({'*.*'});
+filePath = [path name];
+currSysMessText =[{['Loading Solutions in ' name]};currSysMessText];
+
+[data,messages] = loadData(filePath);
+if ~isempty(currSysMessText)
+    currSysMessText =[messages;currSysMessText];
+    set(handles.systemMessages, 'String', currSysMessText);
+end
+
+try
+    cla;%clear the plot window
+    if isempty(data(1).x)
+        return
+    elseif or(length(data(1).x)==1,length(data(1).y)==1)
+        if length(data.x) == 1
+        solInput = [{data(1).y},...
+            {zeros(length(data(1).x),length(data(1).y))},{0}];
+            for index = 1:length(data)
+                solInput = [solInput,{data(index).y}, ...
+                    {data(index).data},{'red'},{0}];
+            end
+        else
+        solInput = [{data(1).x},...
+            {zeros(length(data(1).x),length(data(1).y))},{0}];
+            for index = 1:length(data)
+                solInput = [solInput,{data(index).x}, ...
+                    {data(index).data},{'red'},{0}];
+            end
+        end
+        visualize1D(solInput);
+    elseif and(length(data.x)>1,length(data.y)>1)
+        solInput = [{data(1).x},{data(1).y},...
+            {zeros(length(data(1).x),length(data(1).y))},{0}];
+        for index = 1:length(data)
+            solInput = [solInput,{data(index).x},{data(index).y}, ...
+                {data(index).data},{1}];
+        end
+        visualize2D(solInput)
+    end
+    %Enable the plot control toggle buttons
+    set(handles.rotateEnable,'Enable','on');
+    set(handles.panEnable,'Enable','on');
+    set(handles.zoomEnable,'Enable','on');
+catch
+    
+    currSysMessText =['Solutions failed to plot';currSysMessText];
+
+    set(handles.systemMessages,'String',currSysMessText);
+end
+
 
 
 % --- Executes during object creation, after setting all properties.
-function edit3_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit3 (see GCBO)
+function loadSolutionButton_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to loadSolutionButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -368,18 +437,26 @@ end
 
 
 
-function edit4_Callback(hObject, eventdata, handles)
-% hObject    handle to edit4 (see GCBO)
+
+function zoomEnable_Callback(hObject, eventdata, handles)
+% hObject    handle to zoomEnable (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit4 as text
-%        str2double(get(hObject,'String')) returns contents of edit4 as a double
-
+% Hints: get(hObject,'String') returns contents of zoomEnable as text
+%        str2double(get(hObject,'String')) returns contents of zoomEnable as a double
+zoomEnableStatus = get(handles.zoomEnable,'Value');
+if ~zoomEnableStatus
+    zoom on;
+    %set(handles.rotateEnable,'Value',1);
+else
+    zoom off;
+    %set(handles.rotateEnable,'Value',0);
+end
 
 % --- Executes during object creation, after setting all properties.
-function edit4_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit4 (see GCBO)
+function zoomEnable_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to zoomEnable (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -391,18 +468,25 @@ end
 
 
 
-function edit5_Callback(hObject, eventdata, handles)
-% hObject    handle to edit5 (see GCBO)
+function panEnable_Callback(hObject, eventdata, handles)
+% hObject    handle to panEnable (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit5 as text
-%        str2double(get(hObject,'String')) returns contents of edit5 as a double
-
+% Hints: get(hObject,'String') returns contents of panEnable as text
+%        str2double(get(hObject,'String')) returns contents of panEnable as a double
+panEnableStatus = get(handles.panEnable,'Value');
+if ~panEnableStatus
+    pan on;
+    %set(handles.rotateEnable,'Value',1);
+else
+    pan off;
+    %set(handles.rotateEnable,'Value',0);
+end
 
 % --- Executes during object creation, after setting all properties.
-function edit5_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit5 (see GCBO)
+function panEnable_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to panEnable (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -412,19 +496,27 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-function edit6_Callback(hObject, eventdata, handles)
-% hObject    handle to edit6 (see GCBO)
+function rotateEnable_Callback(hObject, eventdata, handles)
+% hObject    handle to rotateEnable (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit6 as text
-%        str2double(get(hObject,'String')) returns contents of edit6 as a double
+% Hints: get(hObject,'String') returns contents of rotateEnable as text
+%        str2double(get(hObject,'String')) returns contents of rotateEnable as a double
+rotateEnableStatus = get(handles.rotateEnable,'Value');
+if ~rotateEnableStatus
+    rotate3d on;
+    %set(handles.rotateEnable,'Value',1);
+else
+    rotate3d off;
+    %set(handles.rotateEnable,'Value',0);
+end
 
-
+guidata(hObject,handles)
 
 % --- Executes during object creation, after setting all properties.
-function edit6_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit6 (see GCBO)
+function rotateEnable_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to rotateEnable (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -439,29 +531,43 @@ end
 
 function visualize1D(varargin)
 %function visualize1D(varargin)
-%ex: visualize1D([1 2 3 4 5],[1 2 3 2 1],'red');
+%ex: visualize1D([1 2 3 4 5],[1 2 3 2 1],'red',offset);
 %input data structure:
-% varargin{1+3*n} = X-axis array
-% barargin{2+3*n} = Y-axis array
-% style{3+3*n} = display style
+% varargin{1+4*n} = X-axis array
+% barargin{2+4*n} = Y-axis array
+% style{3+4*n} = display style
+% offset{4+4*n} = plot offset from 0.
 %where n is the number of items being plotted
 %style will pass matlab plot options directly to the plot command.
 
-if mod(nargin,3) ~= 0 && nargin ~= 0;
+if nargin == 1 && length(varargin{1}) > 1 
+    %fix the input issue. should probably put this back into properly
+    %matlab data structure format at some later point, but it is just too
+    %much of a pain at the moment.
+    vararginC = varargin{1};
+    narginC = length(vararginC);
+    
+else
+    narginC = nargin;
+    vararginC = varargin;
+end
+
+if mod(narginC,4) ~= 0 && narginC ~= 0;
     fprintf(['Bad input arguments. There should be a multiple \n' ...
-        'of three input arguments. There are ' num2str(nargin) '.\n']);
+        'of four input arguments. There are ' num2str(narginC) '.\n']);
     return;
 end
 
-for n = 1:3:nargin
-    X(:,ceil(n/3)) = varargin{n};
-    Y(:,ceil(n/3)) = varargin{n+1};
-    color{ceil(n/3)} = varargin{n+2};
+for n = 1:4:nargin
+    X(:,ceil(n/4)) = vararginC{n};
+    Y(:,ceil(n/4)) = vararginC{n+1};
+    color{ceil(n/4)} = vararginC{n+2};
+    offset{ceil(n/4)} = vararginC{n+3};
 end
 
 %axes(handles.simPlot);
 for n = 1:1:nargin/3
-    plot(X(:,n),Y(:,n),color{n})
+    plot(X(:,n),Y(:,n)+offset(n),color{n})
     hold on;
 end
 hold off
@@ -481,9 +587,21 @@ function visualize2D(varargin)
 %where n is the number of items being plotted
 %style will pass matlab plot options directly to the plot command.
 
-if mod(nargin,4) ~= 0 && nargin ~= 0;
+if nargin == 1 && length(varargin{1}) > 1 
+    %fix the input issue. should probably put this back into properly
+    %matlab data structure format at some later point, but it is just too
+    %much of a pain at the moment.
+    vararginC = varargin{1};
+    narginC = length(vararginC);
+    
+else
+    narginC = nargin;
+    vararginC = varargin;
+end
+
+if mod(narginC,4) ~= 0 && narginC ~= 0;
     fprintf(['Bad input arguments. There should be a multiple \n' ...
-        'of four input arguments. There are ' num2str(nargin) '.\n']);
+        'of four input arguments. There are ' num2str(narginC) '.\n']);
     return;
 end
 
@@ -492,22 +610,21 @@ end
 %axes(handles.simPlot);%Can't select this one of multiple inputs unless we
 %pass the handle structure into this function.
 
-for n = 1:4:nargin
+for n = 1:4:narginC
     if n == 1 %plot styles set up for the potential (more transparent)
-        h(1)=surf(varargin{n},varargin{n+1},varargin{n+2});
+        h(1)=surf(vararginC{n},vararginC{n+1},vararginC{n+2});
         set(h(1),'facealpha',0.35);
-        set(h(1),'edgealpha',0.00);
+        set(h(1),'edgealpha',0.01);
         hold on;
     else %plot styles set up for wavefunctions
         %h(n) is the handle for the graphic objects I am creating. They can
         %be accessed by get or set(h(n)) with whatever property you want to
         %mess with.
-        h(n)=surf(varargin{n},varargin{n+1},varargin{n+2}+varargin{n+3});
+        h(n)=surf(vararginC{n},vararginC{n+1},vararginC{n+2}+vararginC{n+3});
         set(h(n),'facealpha',0.7);
-        set(h(n),'edgealpha',0.7);
+        set(h(n),'edgealpha',0.1);
     end
 end
-rotate3d on;
 hold off;
 'end';% a good place to stick a breakpoint for playing with the plots.
 %make sure to turn 'rotate3d on;'
@@ -515,11 +632,11 @@ hold off;
 
 %%
 
-function [potential,messages] = loadPotentialData(path)
-%function potential = loadPotentialData(path)
-%potential.x = [x1,x2,x3,x4,...]
-%potential.y = [y1,y2,y3,y4,...]
-%potential.data = [d_11,d_12,d_13,d_14;d_21,d_22,d_23,d24;...]
+function [data,messages] = loadData(path)
+%function data = loadData(path)
+%data.x = [x1,x2,x3,x4,...]
+%data.y = [y1,y2,y3,y4,...]
+%data.data = [d_11,d_12,d_13,d_14;d_21,d_22,d_23,d24;...]
 %Works with binary or delimited ascii/unicode data. Save the data file as a
 %.txt file if you want to read it in as ascii or unicode. Otherwise, it
 %will default to binary.
@@ -527,52 +644,59 @@ function [potential,messages] = loadPotentialData(path)
 try
     fidP = fopen(path,'r','ieee-le.l64');
 catch
-    potential = [];
+    data = [];
     messages = {'FILE FAILED TO LOAD'};
     return
 end
 if fidP == -1
-    potential = [];
+    data = [];
     messages = {'BAD FILE PATH'};
     return
 end
 
 try
-    messages = [];
-    if strcmp(path(end-3:end),'.txt')
-        %ascii or unicode
-        xNum = fscanf(fidP,'%e',1);
-        yNum = fscanf(fidP,'%e',1);
-        potential.x = fscanf(fidP,'%e',xNum);
-        potential.y = fscanf(fidP,'%e',yNum);
-        potential.data = fscanf(fidP,'%e',[xNum,yNum]);
-        if size(potential.data,1)*size(potential.data,2) ~= xNum*yNum
-            messages =[{'POTENTIAL DATA MISLOADED (size != xNum*yNum)'};...
-                {'Is your file formatted correctly?'};...
-                {'It might not like how your decimal numbers are formatted'}];
-        end
-    else
-        %binary
-        xNum = fread(fidP,1,'float64');
-        yNum = fread(fidP,1,'float64');
-        potential.x = fread(fidP,xNum,'float64');
-        potential.y = fread(fidP,yNum,'float64');
-        potential.data = fread(fidP,[xNum,yNum],'float64');
-        if size(potential.data,1)*size(potential.data,2) ~= xNum*yNum
-            messages =[{'POTENTIAL DATA MISLOADED (size != xNum*yNum)'};...
-                {'Is your file formatted correctly?'}];
-        end
-        if isempty(xNum)
-            messages =[{'POTENTIAL DATA MISLOADED'};...
-                {'Is your file opening a big endian (PowerPC) file'};...
-                {'file on a little endian (x86) machine?'}];
+    index = 0;
+    fseek(fidP,0,'eof');
+    fileEnd = ftell(fidP);
+    fseek(fidP,0,'bof');
+    while ftell(fidP) < fileEnd - 8
+        index = index + 1;
+        messages = [];
+        if strcmp(path(end-3:end),'.txt')
+            %ascii or unicode
+            xNum(index) = fscanf(fidP,'%e',1);
+            yNum(index) = fscanf(fidP,'%e',1);
+            data(index).x = fscanf(fidP,'%e',xNum(index));
+            data(index).y = fscanf(fidP,'%e',yNum(index));
+            data(index).data = fscanf(fidP,'%e',[xNum(index),yNum(index)]);
+            if size(data.data,1)*size(data.data,2) ~= xNum(index)*yNum(index)
+                messages =[{'DATA MISLOADED (size != xNum*yNum)'};...
+                    {'Is your file formatted correctly?'};...
+                    {'It might not like how your decimal numbers are formatted'}];
+            end
+        else
+            %binary
+            xNum(index) = fread(fidP,1,'float64');
+            yNum(index) = fread(fidP,1,'float64');
+            data(index).x = fread(fidP,xNum(index),'float64');
+            data(index).y = fread(fidP,yNum(index),'float64');
+            data(index).data = fread(fidP,[xNum(index),yNum(index)],'float64');
+            if size(data.data,1)*size(data.data,2) ~= xNum(index)*yNum(index)
+                messages =[{'DATA MISLOADED (size != xNum*yNum)'};...
+                    {'Is your file formatted correctly?'}];
+            end
+            if isempty(xNum)
+                messages =[{'DATA MISLOADED'};...
+                    {'Is your file opening a big endian (PowerPC) file'};...
+                    {'file on a little endian (x86) machine?'}];
+            end
         end
     end
     
     fclose(fidP);
 catch
-    potential = [];
-    messages = {'POTENTIAL DATA FAILED TO LOAD'};
+    data = [];
+    messages = {'DATA FAILED TO LOAD'};
     fclose(fidP);
     return
 end
