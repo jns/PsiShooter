@@ -139,14 +139,6 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
 	char log_message[256];
 	ps_log("PsiShooter -- a shooting method solver for the time independant Schrodinger equation under the effective mass approximation.\n");
 	
-	//TO DO: these will not stay hard coded. Someday we will have a slick way to handle file I/O.
-	char LOG_FILENAME_V[] = "V.dat"; //Output file for the potential energy profile, V(x)
-    char LOG_FILENAME_x[] = "x.dat"; //Output file for the indeptendant variable, x
-    char LOG_FILENAME_F[] = "F.dat"; //Output file for the envelope function (wavefunction)
-    char LOG_FILENAME_G[] = "G.dat"; //Output file for the auxillary function coupled to F
-    char LOG_FILENAME_BS[] = "BS.dat"; //Output file for the envelope function (wavefunction) of bound states
-    char LOG_FILENAME_E[] = "E.dat"; //Output file for the eigenvalues corresponding to bound states
-
     // This is a linked list for storing solutions
 	PS_LIST solution_list = ps_list_create();
 
@@ -195,9 +187,6 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
 	int err;
 		
 	for(E = Emin; E < Emax; E+=Estep) {
-
-        sprintf(log_message,"\tE=%g meV\n", E/EV_TO_ERGS);
-		ps_log(log_message);
 		
         F[0] = 0;
         G[0] = 1;
@@ -211,92 +200,34 @@ PS_LIST ps_solve_1D(PS_DATA potential) {
         }
 		f_cache[iter] = F[N-1];
 		
-        sprintf(log_message, "\tF[N-1]=%g\n", F[N-1]);
+        sprintf(log_message, "\tE=%g eV\tF[N-1]=%g\n", E/EV_TO_ERGS, F[N-1]);
 		ps_log(log_message);
 		
-        //Is the boundry value near the threshold (and therefore a solution)?
-        if(!threshold_set_flag) {
+		// First time around we need to set the threshold
+        if(iter == 0) {
             F_threshold = F[N_threshold]; //Use the value that F gets to half way through the first barrier (the boundry barrier)
             sprintf(log_message, "\tSetting boundry value threshold for F_threshold=%e, which is the value of F @ point N=%d (1/2 through the first barrier for the first \"shot\"), \n", F_threshold, N_threshold);
 			ps_log(log_message);
             threshold_set_flag = 1; 
-			f_cache[iter+1] = f_cache[iter]; // TO avoid problems on the first solution. 
-        }   
-        
-        //printf("\tF[N]=%e\n", F[N/2]);
-        //abs(F[N]) < F_threshold
-		
-        // if(fabs(F[N-1]) < F_threshold) {
+        }  else if ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0)) {
 		// test for a sign crossing
-		if ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0)) {
 
 			PS_DATA wavefunction = ps_data_copy(potential); // copy the potential
 			ps_data_set_data(wavefunction, F); // Overwrite the potential with the wavefunction
 			
 			PS_SOLUTION *solution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
-			solution->energy = E/EV_TO_ERGS;
+			solution->energy = E;
 			solution->wavefunction = wavefunction;
 			
 			ps_list_add(solution_list, solution);
 			
             //print the energy and the WFN envelope to a file 
 			//bound_energies[bound_state_count++] = E;
-            sprintf(log_message, "\t\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e printing to log file, %s \n", bound_state_count, solution->energy, F[N], F_threshold, LOG_FILENAME_BS);
+            sprintf(log_message, "\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[N], F_threshold);
 			ps_log(log_message);
-			
-            FILE *pFile_E;
-            char buffer_E[BUFSIZ];
-            pFile_E = fopen(LOG_FILENAME_E, "a"); //append
-            if (pFile_E != NULL) {
-                setbuf(pFile_E, buffer_E);
-                //fputs("#Output of F",pFile_F);
-                fprintf(pFile_E, "%e\n", E);                            
-                fclose(pFile_E); //fflush(pFile1); //closing flushes already
-            }
-            
-            FILE *pFile_BS;
-            char buffer_BS[BUFSIZ];
-            pFile_BS = fopen(LOG_FILENAME_BS, "a"); //append
-            if (pFile_BS != NULL) {
-                setbuf(pFile_BS, buffer_BS);
-                //fputs("#Output of F",pFile_F);
-                for(i=0; i<N; i++) {
-                    fprintf(pFile_BS, "%e ", F[i]);
-                }            
-                fprintf(pFile_BS, "\n");
-                fclose(pFile_BS); //fflush(pFile1); //closing flushes already
-            }
         }
         
 		iter++; // Increment the iteration 
-		
-		//Output printf files
-        //print F[i] to log
-        //print G[i] to log
-		
-        FILE *pFile_F;
-        char buffer_F[BUFSIZ];
-        pFile_F = fopen(LOG_FILENAME_F, "a"); //append
-        if (pFile_F != NULL) {
-            setbuf(pFile_F, buffer_F);
-            //fputs("#Output of F",pFile_F);
-            for(i=0; i<N; i++) {
-                fprintf(pFile_F, "%e\t%e\n", i*dx, F[i]);
-            }            
-            fclose(pFile_F); //fflush(pFile1); //closing flushes already
-        }
-		
-        FILE *pFile_G;
-        char buffer_G[BUFSIZ];
-        pFile_G = fopen(LOG_FILENAME_G, "a"); //append
-        if (pFile_G != NULL) {
-            setbuf(pFile_G, buffer_G);
-            //fputs("#Output of G",pFile_G);
-            for(i=0; i<N; i++) {
-                fprintf(pFile_G, "%e\t%e\n", i*dx, G[i]);
-            }            
-            fclose(pFile_G); //fflush(pFile1); //closing flushes already
-        }
     }    	
 	
 	return solution_list;
