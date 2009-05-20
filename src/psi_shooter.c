@@ -309,10 +309,10 @@ PS_DATA test_potential_2D() {
 	double well_width_x = 10 * 1e-7; //nm * cm/nm = cm, region 2
 	double barrier_width_x = 10 * 1e-7; //nm * cm/nm , regions 1 and 3
 	double well_width_y = well_width_x; //square for now.
-	double barrier_width_y = barrier_width_y; //square for now.
+	double barrier_width_y = barrier_width_x; //square for now.
 
-	int number_of_points_x = 1000;
-	int number_of_points_y = 1000;
+	int number_of_points_x = 50;
+	int number_of_points_y = 50;
 	
 	int xsize = number_of_points_x;
 	double xstep = (well_width_x + barrier_width_x + barrier_width_x)/((double)number_of_points_x); //total width converted to cm divided by the number of points = width per point
@@ -329,24 +329,29 @@ PS_DATA test_potential_2D() {
 	int i,j;
 	int err;
 	double V;
-	double x,y;
+	double x = 0, y = 0;
 	
 	//Generate the potential, 
  	for (i = 0; i < xsize; i++) {	
+		y = 0;
 		for (j = 0; j < ysize; j++) {	
+
 			if( (x > barrier_width_x && x < (barrier_width_x+well_width_x)) && 
-			    (y > barrier_width_y && y < (barrier_width_y+well_width_y)) ) {
-				
-				ps_data_set_value_at_row_column(potential, 0, j, i); //in the well			
+			    (y > barrier_width_y && y < (barrier_width_y+well_width_y)) ) {				
+				err = ps_data_set_value_at_row_column(potential, 0, j, i); //in the well			
 			} else {
-				ps_data_set_value_at_row_column(potential, Vb, j, i);	//in the barriers			
+				err = ps_data_set_value_at_row_column(potential, Vb, j, i);	//in the barriers			
 			} 
-			ps_data_set_x_value_at(potential, i, x);
-			ps_data_set_y_value_at(potential, j, y);
 			
-			x += xstep;
+			if (0 == i) {
+				ps_data_set_y_value_at(potential, j, y);				
+			}
+			
 			y += ystep;
 		}
+		x += xstep;
+		printf("\n");
+		ps_data_set_x_value_at(potential, i, x);
 	}	
 	return potential;	
 }
@@ -364,8 +369,13 @@ int main(int argc, char **argv) {
 		sprintf(msg, "No file specified. Using builtin potential.\n");
 		ps_log(msg);
 		//get a 1D test potential
-		potential = test_potential_1D();
+		potential = test_potential_2D();
 
+		FILE *f = fopen("V_2d.dat", "w");
+		ps_data_write_bin(potential, f);
+		fclose(f);
+		return 0;
+		
 	} else if (2 == argc) {
 		// Interpret argument as file to process
 
