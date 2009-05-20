@@ -89,6 +89,10 @@ int ps_data_set_x_value_at(PS_DATA data, int x, double x_value) {
 	data->x_values[x] = x_value;
 }
 
+int ps_data_set_y_value_at(PS_DATA data, int y, double y_value) {
+	data->y_values[y] = y_value;
+}
+
 double ps_data_xvalue_at(PS_DATA data, int col) {
 	return data->x_values[col];
 }

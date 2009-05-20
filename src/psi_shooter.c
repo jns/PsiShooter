@@ -280,6 +280,79 @@ PS_DATA test_potential_1D() {
 	return potential;	
  }
 
+//
+// Generates a test potential. Not really a permenant feature, but rather its 
+// something I intend to use in order to do some useful solver engine work 
+// while the generation of potentials from files/user input is up in air.
+// The size of the square well (region 0) is "well_width_x * well_width_y"
+// The thickness of the barriers (regions 1 & 3) is "barrier_width"
+//
+//            well_width_x
+//                +---+
+//           
+//           1 1 1 1 1 1 1 1 1
+//           1 1 1 1 1 1 1 1 1  
+//           1 1 1 1 1 1 1 1 1  
+//           1 1 1 0 0 0 1 1 1  +
+//           1 1 1 0 0 0 1 1 1  | well_width_y
+//           1 1 1 0 0 0 1 1 1  +
+//           1 1 1 1 1 1 1 1 1  
+//           1 1 1 1 1 1 1 1 1  
+//           1 1 1 1 1 1 1 1 1 
+//
+//           +---+       +---+
+//             \          /
+//             barrier_width  
+//              
+// Region 1: V=Vb
+// Regoin 0: V=0
+PS_DATA test_potential_2D() {
+	//For convience of trying different scenarios the test potential is defined here in terms of nanometers * cm/nm
+	double well_width_x = 10 * 1e-7; //nm * cm/nm = cm, region 2
+	double barrier_width_x = 10 * 1e-7; //nm * cm/nm , regions 1 and 3
+	double well_width_y = well_width_x; //square for now.
+	double barrier_width_y = barrier_width_y; //square for now.
+
+	int number_of_points_x = 1000;
+	int number_of_points_y = 1000;
+	
+	int xsize = number_of_points_x;
+	double xstep = (well_width_x + barrier_width_x + barrier_width_x)/((double)number_of_points_x); //total width converted to cm divided by the number of points = width per point
+	int ysize = number_of_points_y;
+	double ystep = (well_width_y + barrier_width_y + barrier_width_y)/((double)number_of_points_y); //total width converted to cm divided by the number of points = width per point
+
+	double Vb = 0.5*EV_TO_ERGS; // eV barrier
+	
+	PS_DATA potential = ps_data_create(xsize, ysize);
+	potential->xstep = xstep; // This is temporary.  Jere and I have changed the file format to support non-uniform rectilinear grids
+	potential->ystep = ystep; // which means that each x and y value is specified and the dx must be queried at every point.
+	
+	//temporary local variables
+	int i,j;
+	int err;
+	double V;
+	double x,y;
+	
+	//Generate the potential, 
+ 	for (i = 0; i < xsize; i++) {	
+		for (j = 0; j < ysize; j++) {	
+			if( (x > barrier_width_x && x < (barrier_width_x+well_width_x)) && 
+			    (y > barrier_width_y && y < (barrier_width_y+well_width_y)) ) {
+				
+				ps_data_set_value_at_row_column(potential, 0, j, i); //in the well			
+			} else {
+				ps_data_set_value_at_row_column(potential, Vb, j, i);	//in the barriers			
+			} 
+			ps_data_set_x_value_at(potential, i, x);
+			ps_data_set_y_value_at(potential, j, y);
+			
+			x += xstep;
+			y += ystep;
+		}
+	}	
+	return potential;	
+}
+
 
 //
 // PsiShooter program entry point
