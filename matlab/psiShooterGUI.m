@@ -55,11 +55,12 @@ function psiShooterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to psiShooterGUI (see VARARGIN)
 
 %Global data set
-global data psi;
+global data psi vPath;
 %clear the global variables in case this program is being run twice in the
 %same instance of matlab.
 data = [];
 psi = [];
+vPath = [];
 
 % Choose default command line output for psiShooterGUI
 handles.output = hObject;
@@ -138,7 +139,7 @@ function loadButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 axes(handles.simPlot);%set up to plot on the main plot window
-global data; %access global potential variable
+global data vPath; %access global potential variable
 
 loadMenu_index = get(handles.loadMenu, 'Value');
 currSysMessText = get(handles.systemMessages, 'String');
@@ -149,6 +150,9 @@ switch loadMenu_index
         %get the file path if none is specified in the text box
         if or(isempty(filePath),strcmp(filePath,'Input File Path'))
             [name,path] = uigetfile({'*.*'});
+            if isequal(filename,0) || isequal(pathname,0)
+                return;
+            end
             filePath = [path name];
             set(handles.loadInput,'String',name);
         end
@@ -166,6 +170,7 @@ switch loadMenu_index
         set(handles.systemMessages, 'String', currSysMessText);
         
         %Get the potential
+        vPath = filePath;
         [data,messages] = loadData(filePath);
         potential = data(1);
         
@@ -249,6 +254,42 @@ function simulateButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %Precede the shell command with ! to execute.
+global vPath;
+
+simulateMenu_index = get(handles.simulateMenu, 'Value');
+currSysMessText = get(handles.systemMessages, 'String');
+
+if isempty(vPath)
+    msgbox('No Potential Loaded. Please load the potential file first.');
+    return;
+end
+
+unixOS = 1;
+
+%get(handles.)
+
+if unixOS
+    [status,result] = unix('ls psi_shooter');
+    if length(result) == 12
+        %Then it found the binary
+        [status,messages] = unix(['./psi_shooter ' vPath ' -v']);
+    else
+        msgbox('Give me the path to the Psi Shooter binary!')
+        [name,path] = uigetfile('','Select the Psi Shooter Binary');
+        if isequal(filename,0) || isequal(pathname,0)
+            return;
+        end
+        filePath = [path name];
+        [status,messages] = unix([filePath ' ' vPath ' -v']);
+    end
+    if ~isempty(messages)
+        currSysMessText = [{'---PSISHOOTER BINARY MESSAGES---'};{messages}; ...
+            {'---PSISHOOTER BINARY MESSAGES---'}];
+    end
+else
+    msgbox(['Your operating system is not yet fully supported. ' ...
+        'Please edit psiShooterGUI.m to add support']);
+end
 
 %%
 
@@ -260,8 +301,8 @@ function simulateMenu_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = get(hObject,'String') returns simulateMenu contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from simulateMenu
-
+%        contents{get(hObject,'Value')} returns selected item from
+%        simulateMenu
 
 % --- Executes during object creation, after setting all properties.
 function simulateMenu_CreateFcn(hObject, eventdata, handles)
@@ -352,7 +393,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
+%%
 
 function loadSolutionButton_Callback(hObject, eventdata, handles)
 % hObject    handle to loadSolutionButton (see GCBO)
@@ -361,6 +402,8 @@ function loadSolutionButton_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of loadSolutionButton as text
 %        str2double(get(hObject,'String')) returns contents of loadSolutionButton as a double
+
+global psi data;
 
 currSysMessText = get(handles.systemMessages, 'String');
 
@@ -374,37 +417,42 @@ end
 filePath = [path name];
 currSysMessText =[{['Loading Solutions in ' name]};currSysMessText];
 
-[data,messages] = loadData(filePath);
+[psi,messages] = loadData(filePath);
 currSysMessText =[messages;currSysMessText];
 
 [energies,messages] = loadEnergies([path 'E.txt']);
 currSysMessText =[messages;currSysMessText];
 if isempty(energies)
-    energies(1:length(data)) = [1:length(data)];
+    energies(1:length(psi)) = [1:length(psi)];
 end
-if length(energies) ~= length(data)
+if length(energies) ~= length(psi)
     currSysMessText =[{'Different number of bound states'}; ...
         {'found than solutions found in file'};currSysMessText];
 end
 
 set(handles.systemMessages, 'String', currSysMessText);
 
+%Put    EVERYTHING below in the try-catch statements into a seperate
+%function so that it can be called from the simulate  button too.
 try
     cla;%clear the plot window
-    if isempty(data(1).x)
+    if isempty(psi(1).x)
         return
-    elseif or(length(data(1).x)==1,length(data(1).y)==1)
-        if length(data(1).x) == 1
-        solInput = [{data(1).y},...
-            {zeros(1,length(data(1).y))},{0}];
-            for index = 1:length(data)
-                solInput = [solInput,{data(index).y}, ...
-                    {data(index).data},{'red'},{energies(index)}];
+    elseif or(length(psi(1).x)==1,length(psi(1).y)==1)
+        if length(psi(1).x) == 1 
+            %checking to see if the length of the potential data is larget
+            %than the length of the solution data is a cheap hack to see if
+            %the data structure  is 2d or not. There are better ways of
+            %doing this, but it is late, and I'd rather write a long
+            %comment than correct what I just wrote.
+            if isempty(data) || length(data(1).data) > length(psi(1).data)
+                solInput = [{psi(1).y},...
+                    {zeros(1,length(psi(1).y))},{'black'},{0}];
+            else
+                solInput = [{data(1).y},...
+                    {length(data(1).data)},{'black'},{0}];
             end
-        else
-        solInput = [{data(1).x},...
-            {zeros(1,length(data(1).x))},{'black'},{0}];
-            for index = 1:length(data)
+            for index = 1:length(psi)
                 if index == 1%Set the colors for each fucntion.
                     %This should be done with a function, but here's a
                     %quick soltion.
@@ -414,17 +462,44 @@ try
                 else
                     color = 'blue';
                 end
-                solInput = [solInput,{data(index).x}, ...
-                    {data(index).data},{color},{energies(index)}];
+                solInput = [solInput,{psi(index).y}, ...
+                    {psi(index).data},{color},{energies(index)}];
+            end
+        else
+            if isempty(data) || length(data(1).data) > length(psi(1).data)
+                solInput = [{psi(1).x},...
+                    {zeros(1,length(psi(1).x))},{'black'},{0}];
+            else
+                solInput = [{data(1).x},...
+                    {data(1).data},{'black'},{0}];
+            end
+            for index = 1:length(psi)
+                if index == 1%Set the colors for each fucntion.
+                    %This should be done with a function, but here's a
+                    %quick soltion.
+                    color = 'red';
+                elseif index == 2
+                    color = 'green';
+                else
+                    color = 'blue';
+                end
+                solInput = [solInput,{psi(index).x}, ...
+                    {psi(index).data},{color},{energies(index)}];
             end
         end
         visualize1D(solInput);
-    elseif and(length(data.x)>1,length(data.y)>1)
-        solInput = [{data(1).x},{data(1).y},...
-            {zeros(length(data(1).x),length(data(1).y))},{0}];
-        for index = 1:length(data)
-            solInput = [solInput,{data(index).x},{data(index).y}, ...
-                {data(index).data},{energies(index)}];
+        set(handles.rotateEnable,'Enable','off');
+    elseif and(length(psi.x)>1,length(psi.y)>1)
+        if isempty(data)
+            solInput = [{psi(1).x},{psi(1).y},...
+                {zeros(length(psi(1).x),length(psi(1).y))},{0}];
+        else
+            solInput = [{data(1).x},{data(1).y},...
+                {data(1).data},{0}];
+        end
+        for index = 1:length(psi)
+            solInput = [solInput,{psi(index).x},{psi(index).y}, ...
+                {psi(index).data},{energies(index)}];
         end
         visualize2D(solInput)
         set(handles.rotateEnable,'Enable','on');
