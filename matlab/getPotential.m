@@ -340,14 +340,15 @@ function meshGen = constructPotential(layerData,meshResolution, ...
 %implemented for linear potentials and circularly symmetric potentials now.
 
 %this should all be in angstroms. Might need to change that later
-geometrySizeExtra = 10;
+angs_to_cm = 1e-8;
+geometrySizeExtra = 0;
 geometrySize = geometrySizeExtra;
 for index = 1:length(layerData)
-    geometrySize = geometrySize + layerData(index).thickness;
+    geometrySize = geometrySize + layerData(index).thickness*angs_to_cm;
 end
 
 if geometrySelect_index == 6
-    meshGen.X = 0:meshResolution:geometrySize;
+    meshGen.X = 0:meshResolution*angs_to_cm:geometrySize;
 else
     meshGen.X = -geometrySize:meshResolution:geometrySize;
     meshGen.Y = -geometrySize:meshResolution:geometrySize;
@@ -366,7 +367,7 @@ if geometrySelect_index == 6%Just 1-D
     for indX = 1:length(meshGen.X)
         for index = 1:length(layerData)
             if indX*meshResolution < thickness(index)
-                meshGen.Data(indX) = layerData(index).V;
+                meshGen.Data(indX) = layerData(index).V*1.60217646e-12;
                 break;
             end
         end
@@ -402,7 +403,7 @@ function writeFile(X,Y,Data,path)
 %writeFile(X,Y,Data,fileName)
 
 if Y == 0
-    yLength = 0;
+    yLength = 1;
 else
     yLength=length(Y);
 end

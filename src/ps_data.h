@@ -10,6 +10,7 @@ typedef struct {
 	unsigned int xsize;
 	unsigned int ysize;
 	double xstep; // temporary for the sake of not upsetting psi-shooter
+	double ystep; // temporary for the sake of not upsetting psi-shooter
 	double *x_values;
 	double *y_values;
 	double *data;
@@ -35,6 +36,7 @@ int ps_data_columns(PS_DATA data);
 int ps_data_set_x_values(PS_DATA data, double *x_values);
 int ps_data_set_y_values(PS_DATA data, double *y_values);
 int ps_data_set_x_value_at(PS_DATA data, int x, double x_value);
+int ps_data_set_y_value_at(PS_DATA data, int y, double y_value);
 
 /**
  * Query the x and y value
