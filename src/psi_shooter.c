@@ -147,8 +147,9 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 
 	// wavefunction storage.  
 	int N = potential->xsize; // used for generating strings with sprintf for sending to ps_log
-	double dx = potential->xstep; //cm, size of differential length (TODO: Compute this inside loop)
-	int N_threshold = 100; //point at which the threshold magnitude is taken. Its a kludgy way to do it, but for now its fine. To Do: Make this more general
+//	double dx = potential->xstep; //cm, size of differential length (TODO: Compute this inside loop)
+	double dx = ps_data_dx_at(potential, 0);
+	// int N_threshold = 100; //point at which the threshold magnitude is taken. Its a kludgy way to do it, but for now its fine. To Do: Make this more general
 	double F[N]; //the envelope function (wavefunction)
 	double f_cache[params->n_iter]; // We cache the last value of the envelope for each solution
 	double G[N]; //the aux function
@@ -181,7 +182,6 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	double Estep = (params->energy_max - params->energy_min)/(params->n_iter); 
 	double V; //meV, Current potential
 	double m_eff = MASS_ELECTRON*M_EFF_GAAS;// To Do: make the electron mass be part of the structure that we are simulating. i.e. in general it can be a position dependant quantity just like the potential (think heterostructures with different band edge curvatures)
-	int err;
 		
 	for (iter = 0; iter < params->n_iter; iter++) {
 		
@@ -203,9 +203,9 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 		
 		// First time around we need to set the threshold
         if(iter == 0) {
-            F_threshold = F[N_threshold]; //Use the value that F gets to half way through the first barrier (the boundry barrier)
-            sprintf(log_message, "\tSetting boundry value threshold for F_threshold=%e, which is the value of F @ point N=%d (1/2 through the first barrier for the first \"shot\"), \n", F_threshold, N_threshold);
-			ps_log(log_message);
+			//             F_threshold = F[N_threshold]; //Use the value that F gets to half way through the first barrier (the boundry barrier)
+			//             sprintf(log_message, "\tSetting boundry value threshold for F_threshold=%e, which is the value of F @ point N=%d (1/2 through the first barrier for the first \"shot\"), \n", F_threshold, N_threshold);
+			// ps_log(log_message);
             threshold_set_flag = 1; 
         }  else if ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0)) {
 		// test for a sign crossing
@@ -266,8 +266,6 @@ PS_DATA test_potential_1D() {
 	
 	//temporary local variables
 	int i;
-	int err;
-	double V;
 	double x;
 	
 	//Generate the potential, 
@@ -291,73 +289,14 @@ int main(int argc, char **argv) {
 
 	char msg[256];
 	PS_DATA potential;
-	int i;
 	
 	if (1 == argc) {
 
 		sprintf(msg, "No file specified. Using builtin potential.\n");
 		ps_log(msg);
 		//get a 1D test potential
-		PS_DATA potential = test_potential_1D();
-		FILE *vfile = fopen("V.dat", "w");
-		ps_data_write_bin(potential, vfile);
-		fclose(vfile);
-	
-		// Setup solution parameters
-		PS_SOLVE_PARAMETERS params;
-		params.energy_min = ps_data_min_value(potential);
-		params.energy_max = ps_data_max_value(potential);
-		params.n_iter = 1000; // The number of energies to try
-		double e_step = (params.energy_max - params.energy_min)/(params.n_iter);
-		
-		// Create a list for solutions
-		PS_LIST solutions = ps_list_create();
-		
-		// 1st pass coarse Solver
-		PS_LIST coarse_solutions = ps_solve_1D(potential, &params);
-		int nfound = ps_list_size(solutions);
+		potential = test_potential_1D();
 
-		// For each solution, do a second pass with finer grained energy steps
-		PS_SOLUTION *s = ps_list_front(coarse_solutions);
-		while (s != NULL) {
-			// I know that ps_solve_1d looks for a sign crossing as it increases
-			// the test energy E and saves the solution for the larger energy
-			params.energy_min = s->energy - e_step;
-			params.energy_max = s->energy;
-			params.n_iter = 500;
-			
-			// Add the fine grain solutions to the final list
-			PS_LIST e_solutions = ps_solve_1D(potential, &params);
-			ps_list_add_all(solutions, e_solutions);
-			ps_list_destroy(e_solutions); // Destroy the list without destroying the data.
-			
-			// Next loop iteration
-			s = ps_list_next(coarse_solutions);
-		}
-		ps_list_destroy_all(coarse_solutions);
-		
-		// Write out solutions
-		sprintf(msg, "Found %i solutions.  Writing to E.txt and BS.dat\n", ps_list_size(solutions));
-		ps_log(msg);
-		
-		FILE *efile = fopen("E.txt", "w");
-		fprintf(efile, "# Bound State Energies [eV]\n");
-		FILE *bsfile = fopen("BS.dat", "w");
-		s = ps_list_front(solutions);
-		while (s != NULL) {
-			// This just writes out the wavefunction. We didn't define a way to 
-			// write the energy with it yet.
-			fprintf(efile, "%g\n", s->energy/EV_TO_ERGS);
-			ps_data_write_bin(s->wavefunction, bsfile);
-			s = ps_list_next(solutions);
-		}
-		fclose(bsfile);
-		fclose(efile);
-	
-		//clean up
-		ps_data_destroy(potential);
-		ps_list_destroy_all(solutions);
-		
 	} else if (2 == argc) {
 		// Interpret argument as file to process
 
@@ -365,17 +304,73 @@ int main(int argc, char **argv) {
 		if (infile == NULL) {
 			sprintf(msg, "Error opening file '%s'\n", argv[1]);
 			ps_log(msg);
+			
+			return PS_ERROR_FILE_NOT_FOUND;  // Exit abnormally
+			
 		} else {
 			sprintf(msg, "Using potential from file '%s'\n", argv[1]);
 			ps_log(msg);
 
 			potential = ps_data_read_bin(infile);
 			fclose(infile);
-			
-			sprintf(msg, "Cannot continue. I don't know what energies to try.\n");
-			ps_log(msg);			
 		}
 	}
-	return 0;
+	
+
+	// Setup solution parameters
+	PS_SOLVE_PARAMETERS params;
+	params.energy_min = ps_data_min_value(potential);
+	params.energy_max = ps_data_max_value(potential);
+	params.n_iter = 1000; // The number of energies to try
+	double e_step = (params.energy_max - params.energy_min)/(params.n_iter);
+		
+	// Create a list for solutions
+	PS_LIST solutions = ps_list_create();
+	
+	// 1st pass coarse Solver
+	PS_LIST coarse_solutions = ps_solve_1D(potential, &params);
+
+	// For each solution, do a second pass with finer grained energy steps
+	PS_SOLUTION *s = ps_list_front(coarse_solutions);
+	while (s != NULL) {
+		// I know that ps_solve_1d looks for a sign crossing as it increases
+		// the test energy E and saves the solution for the larger energy
+		params.energy_min = s->energy - e_step;
+		params.energy_max = s->energy;
+		params.n_iter = 500;
+		
+		// Add the fine grain solutions to the final list
+		PS_LIST e_solutions = ps_solve_1D(potential, &params);
+		ps_list_add_all(solutions, e_solutions);
+		ps_list_destroy(e_solutions); // Destroy the list without destroying the data.
+		
+		// Next loop iteration
+		s = ps_list_next(coarse_solutions);
+	}
+	ps_list_destroy_all(coarse_solutions);
+		
+	// Write out solutions
+	sprintf(msg, "Found %i solutions.  Writing to E.txt and BS.dat\n", ps_list_size(solutions));
+	ps_log(msg);
+	
+	FILE *efile = fopen("E.txt", "w");
+	fprintf(efile, "# Bound State Energies [eV]\n");
+	FILE *bsfile = fopen("BS.dat", "w");
+	s = ps_list_front(solutions);
+	while (s != NULL) {
+		// Write the energies to the energy file
+		fprintf(efile, "%g\n", s->energy/EV_TO_ERGS);
+		// Write the wavefunctions to the solutino file
+		ps_data_write_bin(s->wavefunction, bsfile);
+		s = ps_list_next(solutions);
+	}
+	fclose(bsfile);
+	fclose(efile);
+
+	//clean up
+	ps_data_destroy(potential);
+	ps_list_destroy_all(solutions);
+		
+	return PS_OK;
 }
 

@@ -191,9 +191,22 @@ PS_DATA ps_data_read_bin(FILE *fptr) {
     
 }
 
+unsigned int ps_read_int(FILE *fptr) {
+	return (unsigned int)ps_read_float64(fptr);
+}
+
 double ps_read_float64(FILE *fptr) {
 	int i;
 	FLOAT64 value;
+	
+	// Test machine architecture
+	value.l = 1;
+	if (value.c[0] == 1) {
+		// Big endian
+	} else {
+		// little endian
+	}
+	
 	int nbytes = 1;
 	for (i=0; i<8 && 1 == nbytes; i++) {
 		nbytes = fread(&(value.c[i]), 1, 1, fptr);
@@ -207,9 +220,6 @@ double ps_read_float64(FILE *fptr) {
 	return value.d;
 }
 
-unsigned int ps_read_int(FILE *fptr) {
-	return (unsigned int)ps_read_float64(fptr);
-}
 
 void ps_write_float64(FILE *fptr, double d) {
 	FLOAT64 value;
