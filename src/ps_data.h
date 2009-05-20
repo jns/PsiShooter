@@ -87,4 +87,5 @@ int ps_data_value_at_x_y(PS_DATA data, double x, double y, double *val);
  */
 double ps_data_max_value(PS_DATA data);
 double ps_data_min_value(PS_DATA data);
+double ps_data_dx_at(PS_DATA data, int x);
 #endif

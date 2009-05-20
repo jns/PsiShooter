@@ -7,6 +7,7 @@
 typedef union float64 {
 	char c[8];
 	double d;
+	unsigned long l;
 } FLOAT64;
 
 /**

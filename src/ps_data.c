@@ -19,6 +19,7 @@ int ps_data_check_index(PS_DATA data, int row, int col) {
 
 PS_DATA ps_create_data(unsigned int xsize, unsigned int ysize, double xstep, double ystep) {
 	PS_DATA retval = ps_data_create(xsize, ysize);
+	return retval;
 }
 
 PS_DATA ps_data_create(unsigned int xsize, unsigned int ysize) {
@@ -60,10 +61,12 @@ int ps_data_columns(PS_DATA data) {
 
 int ps_data_init_with_array(PS_DATA data, double *values, int nrows, int ncols) {
 	ps_data_set_data(data, values);
+	return PS_OK;
 }
 
 int ps_data_set_data(PS_DATA data, double *values) {
 	memcpy(data->data, values, (data->xsize)*(data->ysize)*sizeof(double));	
+	return PS_OK;
 }
 
 int ps_data_set_value_at_row_column(PS_DATA data, double value, unsigned int row, unsigned int col) {
@@ -86,7 +89,12 @@ int ps_data_set_y_values(PS_DATA data, double *y_values) {
 }
 
 int ps_data_set_x_value_at(PS_DATA data, int x, double x_value) {
-	data->x_values[x] = x_value;
+	if (0 <= x && data->xsize > x) {
+		data->x_values[x] = x_value;
+		return PS_OK;		
+	} else {
+		return PS_ERROR_INDEX_OUT_OF_BOUNDS;
+	}
 }
 
 int ps_data_set_y_value_at(PS_DATA data, int y, double y_value) {
@@ -128,4 +136,12 @@ double ps_data_min_value(PS_DATA data) {
 		if (data->data[i] < min) { min=data->data[i]; }
 	}
 	return min;
+}
+
+double ps_data_dx_at(PS_DATA data, int x) {
+	if (0 < x) {
+		return data->x_values[x] - data->x_values[x-1];
+	} else {
+		return data->x_values[1] - data->x_values[0];
+	}
 }

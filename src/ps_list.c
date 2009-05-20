@@ -7,6 +7,7 @@ PS_LIST ps_list_create(void) {
 	newlist->head = NULL;
 	newlist->tail = NULL;
 	newlist->current = NULL;
+	return newlist;
 }
 
 /** Release the list */
