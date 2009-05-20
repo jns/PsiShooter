@@ -12,7 +12,7 @@
  *     Why? ... one effective mass for the entire system, this should cut out a bunch of derivatives that need to be calculated
  *     For many potentials electrons don't "see" much of the barriers compared to the wells, so m_eff(x,y) ~= m_eff_well_material 
  *     Maybe only support this case, it has a bunch less terms when you expand out the TISE with fintite differencing 
- *     note: A position dependant mass fucks up the hermicity of H (hamiltonian operator)
+ *     note: A position dependant mass fucks up the hermicity of H (hamiltonian operator) 
  */
 
 void ps_log(char *msg) {
@@ -172,8 +172,9 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//convert to c style         -->  G[i+1] = 4*dx/hbar^2 * F[i]*(V[i]-E) + G[i-1]
 	//                                G[i+1] = G_coeff * F[i]*(V[i]-E) + G[i-1]
 	double G_coeff = 2*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
-//from 4*dx to 2*dx jh sometime in may
-    int bound_state_count = 0;	
+	//from 4*dx to 2*dx jh sometime in may
+    
+	int bound_state_count = 0;	
     int threshold_set_flag = 0; 
     double F_threshold = 0;
 	int i, iter;
@@ -185,6 +186,7 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 		
 	for (iter = 0; iter < params->n_iter; iter++) {
 		
+		//initial conditions
         F[0] = 0;
         G[0] = 1;
 		F[1] = 0;
@@ -193,7 +195,7 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 		for(i=1; i<N-1; i++) {
 			V = ps_data_value(potential, 0,i); //V[i]
 			F[i+1] = F_coeff * G[i] * m_eff + F[i]; //subbed in m_eff for m[i], To Do: support a position dependant mass by storing different masses at different locations (add to the PS_DATA structure probably)			
-			G[i+1] = G_coeff * F[i]*(V-E) + G[i];
+			G[i+1] = G_coeff * F[i] * (V-E) + G[i];
         }
 		f_cache[iter] = F[N-1];
 		
@@ -201,13 +203,8 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
         sprintf(log_message, "\tE=%g eV\tF[N-1]=%g\n", E/EV_TO_ERGS, F[N-1]);
 		ps_log(log_message);
 		
-		// First time around we need to set the threshold
-        if(iter == 0) {
-            F_threshold = F[N_threshold]; //Use the value that F gets to half way through the first barrier (the boundry barrier)
-            sprintf(log_message, "\tSetting boundry value threshold for F_threshold=%e, which is the value of F @ point N=%d (1/2 through the first barrier for the first \"shot\"), \n", F_threshold, N_threshold);
-			ps_log(log_message);
-            threshold_set_flag = 1; 
-        }  else if ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0)) {
+		//Try to detect which solutions are eigen states (bound states)
+        if((iter > 0) && ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0))) { //if there was a change in sign between the last point of the prev and current envelope function then there was a zero crossing and there a solution
 		// test for a sign crossing
 
 			PS_DATA wavefunction = ps_data_copy(potential); // copy the potential
@@ -227,7 +224,6 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 
 		// Increment the energy
 		E += Estep;
-        
     }    	
 	
 	return solution_list;
@@ -377,5 +373,6 @@ int main(int argc, char **argv) {
 		}
 	}
 	return 0;
+ 
 }
 
