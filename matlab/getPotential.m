@@ -22,7 +22,7 @@ function varargout = getPotential(varargin)
 
 % Edit the above text to modify the response to help getPotential
 
-% Last Modified by GUIDE v2.5 13-May-2009 18:36:33
+% Last Modified by GUIDE v2.5 19-May-2009 23:31:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,6 +57,7 @@ function getPotential_OpeningFcn(hObject, eventdata, handles, varargin)
 global layerData layerList;
 %Need to clear the global variable in case it is left around in memory from
 %the last time it was used 
+clear('layerData');
 layerData = [];
 layerData(1).name = 'Free Space';
 layerData(1).V = 0;
@@ -64,18 +65,23 @@ layerData(1).thickness = '0';%NEED TO CONVERT THIS STRING TO A NUMBER LATER!
 %this table is full of values from all over the internet. 
 %I would suggest that you update it with experimental data or more
 %authroritative date before you put too much faith in it.
-layerList(1).name = 'C (diamond)';layerList(1).V = 5.48;
-layerList(2).name = 'Si';layerList(2).V = 1.11;
-layerList(3).name = 'Ge';layerList(3).V = 0.67;
-layerList(4).name = 'AlN';layerList(4).V = 6.3;
-layerList(5).name = 'AlP';layerList(5).V = 2.45;
-layerList(6).name = 'AlAs';layerList(6).V = 2.16;
-layerList(7).name = 'GaN';layerList(7).V = 3.4;
-layerList(8).name = 'GaP';layerList(8).V = 2.26;
-layerList(9).name = 'GaAs';layerList(9).V = 0.36;
-layerList(10).name ='SiO2';layerList(10).V = 9.00;
-layerList(11).name ='Si3N4';layerList(11).V = 5.30;
-layerList(12).name ='H';layerList(12).V = 0;
+layerList(1).name = 'C (diamond)';  layerList(1).eg=5.48;
+layerList(1).mEff(1) = 1.4;         layerList(1).mEff(2) = 0.36; %longitudinal and transferse
+layerList(2).name = 'Si';           layerList(2).eg = 1.11;
+layerList(3).name = 'Ge';           layerList(3).eg = 0.67;
+layerList(4).name = 'AlN';          layerList(4).eg = 6.3;
+layerList(5).name = 'AlP';          layerList(5).eg = 2.45;
+layerList(6).name = 'AlAs';         layerList(6).eg = 2.16;
+layerList(7).name = 'GaN';          layerList(7).eg = 3.4;
+layerList(8).name = 'GaP';          layerList(8).eg = 2.26;
+layerList(9).name = 'GaAs';         layerList(9).eg = 0.36;
+layerList(10).name ='SiO2';         layerList(10).eg = 9.00;
+layerList(11).name ='Si3N4';        layerList(11).eg = 5.30;
+layerList(12).name ='H';            layerList(12).eg = 0;
+
+%Until this table is properly filled out, taking the potentials for the
+%array to be the bandgap.
+layerlist(:).V = layerList(:).eg;
 
 % Choose default command line output for getPotential
 handles.output = hObject;
@@ -151,11 +157,7 @@ global layerList;
 for index = 1:length(layerList)
     dropBoxItems{index} = layerList(index).name;
 end
-wait = 0;
-for index = 1:100
-    wait = wait+1; %for some reason, the gui tries to use getDropBoxItems
-    %before it exists. So I'm making it wait for a bit doing nothing.
-end
+
 set(hObject,'String',dropBoxItems);
 
 %%
