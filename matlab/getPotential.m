@@ -481,6 +481,11 @@ if ~isempty(meshGen.Y)
 end
 %Convert mesh from eV to ergs
 meshGen.Data = meshGen.Data*1.60217646e-12;
+% if length(meshGen.X) == 0 || length(meshGen.Y) == 0
+%     meshGen.Data = meshGen.Data - min(meshGen.Data);
+% else
+%     meshGen.Data = meshGen.Data - min(min(meshGen.Data));
+% end
 
 %%
 

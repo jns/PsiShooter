@@ -200,8 +200,8 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 		f_cache[iter] = F[N-1];
 		
 		// Consider removing this for speed
-        sprintf(log_message, "\tE=%g eV\tF[N-1]=%g\n", E/EV_TO_ERGS, F[N-1]);
-		ps_log(log_message);
+		//         sprintf(log_message, "\tE=%g eV\tF[N-1]=%g\n", E/EV_TO_ERGS, F[N-1]);
+		// ps_log(log_message);
 		
 		//Try to detect which solutions are eigen states (bound states)
         if((iter > 0) && ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0))) { //if there was a change in sign between the last point of the prev and current envelope function then there was a zero crossing and there a solution
@@ -402,6 +402,9 @@ int main(int argc, char **argv) {
 	params.n_iter = 10000; // The number of energies to try
 	double e_step = (params.energy_max - params.energy_min)/(params.n_iter);
 		
+	sprintf(msg, "Testing energies from %g to %g in %g increments\n", params.energy_min/EV_TO_ERGS, params.energy_max/EV_TO_ERGS, e_step/EV_TO_ERGS);
+	ps_log(msg);
+	
 	// Create a list for solutions
 	PS_LIST solutions = ps_list_create();
 	

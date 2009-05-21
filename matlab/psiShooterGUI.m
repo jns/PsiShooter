@@ -459,8 +459,10 @@ try
                     color = 'red';
                 elseif index == 2
                     color = 'green';
-                else
+                elseif index == 3
                     color = 'blue';
+                else
+                    color = 'randomize';
                 end
                 solInput = [solInput,{psi(index).y}, ...
                     {psi(index).data},{color},{energies(index)}];
@@ -480,8 +482,10 @@ try
                     color = 'red';
                 elseif index == 2
                     color = 'green';
-                else
+                elseif index == 3
                     color = 'blue';
+                else
+                    color = 'randomize';
                 end
                 solInput = [solInput,{psi(index).x}, ...
                     {psi(index).data},{color},{energies(index)}];
@@ -658,7 +662,7 @@ for n = 1:4:narginC
     Y(:,ceil(n/4)) = vararginC{n+1};
     if n > 1
         %Normalize the 1D plot values the Y values
-        Y(:,ceil(n/4)) = Y(:,ceil(n/4))/max(Y(1:ceil(length(Y(:,ceil(n/4)))/2),ceil(n/4)));
+        Y(:,ceil(n/4)) = Y(:,ceil(n/4))/max(Y(1:ceil(length(Y(:,ceil(n/4)))),ceil(n/4)));
     end
     color{ceil(n/4)} = vararginC{n+2};
     offset{ceil(n/4)} = vararginC{n+3};
@@ -666,7 +670,11 @@ end
 
 %axes(handles.simPlot);
 for n = 1:1:narginC/4
-    plot(X(:,n),Y(:,n)+offset{n},color{n})
+    if strcmp(color{n},'randomize')
+        plot(X(:,n),Y(:,n)+offset{n},'Color',[rand(1),rand(1),rand(1)]);
+    else
+        plot(X(:,n),Y(:,n)+offset{n},color{n})
+    end
     hold on;
 end
 hold off
