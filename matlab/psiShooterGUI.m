@@ -105,7 +105,7 @@ switch loadMenu_index
         getPotential();
         set(handles.loadInput, 'String', 'SELECT YOUR NEW FILE');
     case 3
-        set(handles.loadInput, 'String', 'Input Function');
+        set(handles.loadInput, 'String', 'Syntax: "sin(x) 0:1e-9:1e-6"');
     case 4
         set(handles.loadInput, 'String', '');
 end
@@ -199,7 +199,33 @@ switch loadMenu_index
     case 2
         set(handles.loadInput,'String','LOAD THE FILE YOU CREATED');
     case 3
-        cla;
+        input = get(handles.loadInput,'String');
+        %Example: "sin(x) 0:1e-9:1e-6"
+        seperationIndex = find(input==' ');
+        x = str2num(input(seperationIndex:end));
+        potentialFunction = input(1:seperationIndex);
+        potential.x = x;
+        potential.data = eval(potentialFunction);
+        
+        currSysMessText =[{['Load Function: ' filePath]};currSysMessText];
+        set(handles.systemMessages, 'String', currSysMessText);
+        
+        cla;%clear the plot window
+        if isempty(potential.x)
+            return
+        elseif or(length(potential.x) == 1,length(potential.y)==1)
+            if length(potential.x) == 1
+                visualize1D(potential.y,potential.data,'red',0);
+            else
+                visualize1D(potential.x,potential.data,'red',0);
+            end
+        elseif and(length(potential.x)>1,length(potential.y)>1)
+            visualize2D(potential.x,potential.y,potential.data,0)
+        end
+        %Enable the plot control toggle buttons
+        set(handles.rotateEnable,'Enable','on');
+        set(handles.panEnable,'Enable','on');
+        set(handles.zoomEnable,'Enable','on');
     case 4
         currSysMessText =[{'Load Default Potential'};currSysMessText];
         set(handles.systemMessages, 'String', currSysMessText);
