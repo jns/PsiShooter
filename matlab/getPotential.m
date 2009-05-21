@@ -57,27 +57,48 @@ function getPotential_OpeningFcn(hObject, eventdata, handles, varargin)
 global layerData layerList;
 %Need to clear the global variable in case it is left around in memory from
 %the last time it was used 
-clear('layerData');
+%clear('layerData');
 layerData = [];
 layerData(1).name = 'Free Space';
 layerData(1).V = 0;
 layerData(1).thickness = '0';%NEED TO CONVERT THIS STRING TO A NUMBER LATER!
+layerData(1).epsRel = 1;
+layerData(1).mEff = 1;
 %this table is full of values from all over the internet. 
 %I would suggest that you update it with experimental data or more
 %authroritative date before you put too much faith in it.
+
+%The second values of things are either documented or the correction based
+%on the alloy percentage.
 layerList(1).name = 'C (diamond)';  layerList(1).eg=5.48;
 layerList(1).mEff(1) = 1.4;         layerList(1).mEff(2) = 0.36; %longitudinal and transferse
+layerList(1).epsRel = 5.7;
 layerList(2).name = 'Si';           layerList(2).eg = 1.11;
+layerList(2).epsRel = 11.9;         layerList(2).mEff = 0.2;
 layerList(3).name = 'Ge';           layerList(3).eg = 0.67;
+layerList(3).epsRel = 16;           layerList(3).mEff = 0.041;
 layerList(4).name = 'AlN';          layerList(4).eg = 6.3;
-layerList(5).name = 'AlP';          layerList(5).eg = 2.45;
-layerList(6).name = 'AlAs';         layerList(6).eg = 2.16;
-layerList(7).name = 'GaN';          layerList(7).eg = 3.4;
-layerList(8).name = 'GaP';          layerList(8).eg = 2.26;
+layerList(4).epsRel = 8.5;          layerList(4).mEff = [];
+layerList(5).name = '*AlP';          layerList(5).eg = 2.45;
+layerList(5).epsRel = [];           layerList(5).mEff = [];
+layerList(6).name = '*AlAs';         layerList(6).eg = 2.16;
+layerList(6).epsRel = [];           layerList(6).mEff = [];
+layerList(7).name = '*GaN';          layerList(7).eg = 3.4;
+layerList(7).epsRel = [];           layerList(7).mEff = [];
+layerList(8).name = '*GaP';          layerList(8).eg = 2.26;
+layerList(8).epsRel = [];           layerList(8).mEff = [];
 layerList(9).name = 'GaAs';         layerList(9).eg = 0.36;
-layerList(10).name ='SiO2';         layerList(10).eg = 9.00;
-layerList(11).name ='Si3N4';        layerList(11).eg = 5.30;
-layerList(12).name ='H';            layerList(12).eg = 0;
+layerList(9).epsRel = 12.5;         layerList(9).mEff = 0.063;
+layerList(10).name = 'AlGaAs';      layerList(10).eg = 2.16;
+layerList(10).eg(2)=0.1*(0.36-2.16);layerList(10).epsRel(1) = 12.9;
+layerList(10).epsRel(2) = 2.84;     layerList(10).mEff(1) = 0.063;
+layerList(10).mEff(2) = 0.083;
+layerList(11).name ='SiO2';         layerList(11).eg = 9.00;
+layerList(11).epsRel = 3.9;          layerList(11).mEff = [];
+layerList(12).name ='Si3N4';        layerList(12).eg = 5.30;
+layerList(12).epsRel = 7.5;          layerList(12).mEff = [];
+layerList(13).name ='H';            layerList(13).eg = 0;
+layerList(13).epsRel = 1;           layerList(13).mEff = 1;
 
 %Until this table is properly filled out, taking the potentials for the
 %array to be the bandgap.
@@ -199,9 +220,13 @@ index = length(layerData);
 layerData(index+1).name = layerData(index).name;
 layerData(index+1).V = layerData(index).V;
 layerData(index+1).thickness = layerData(index).thickness;
+layerData(index+1).epsRel = layerData(index).epsRel;
+layerData(index+1).mEff = layerData(index).mEff;
 layerData(index).name = layerList(layerMenu_index).name;
-layerData(index).V = layerList(layerMenu_index).V;
+layerData(index).V = layerList(layerMenu_index).eg(1);%PULLING POTENTIAL STRAIGHT FROM BANDGAP.
 layerData(index).thickness = get(handles.layerThicknessInput,'String');
+layerData(index).epsRel = layerList(layerMenu_index).epsRel(1);
+layerData(index).mEff = layerList(layerMenu_index).mEff(1);
 
 for displayIndex = 1:length(layerData)
     layerDisplayText(displayIndex) = {[layerData(displayIndex).thickness ...
@@ -264,7 +289,9 @@ function genPotentialButton_Callback(hObject, eventdata, handles)
 
 %Gather the required data
 meshResolution = str2num(get(handles.meshResolutionInput,'String'));
+bias = str2num(get(handles.biasInput,'String'));
 geometrySelect_index = get(handles.symmetrySelect,'Value');
+
 global layerData;
 fileName = get(handles.fileNameInput,'String');
 layerDataTemp = layerData;%Preserve the global data in string form
@@ -273,7 +300,7 @@ for index = 1:length(layerData)
 end
 
 meshGen = constructPotential(layerDataTemp,meshResolution, ...
-    geometrySelect_index);
+    geometrySelect_index,bias);
 
 X = meshGen.X;
 if geometrySelect_index ~= 6
@@ -335,22 +362,22 @@ end
 %%
 
 function meshGen = constructPotential(layerData,meshResolution, ...
-    geometrySelect_index)
+    geometrySelect_index,bias)
 %meshGen = constructPotential(layerData,meshResolution, ...
-%geometrySelect_index)
+%geometrySelect_index,electrical_bias)
 %Generates the mesh. Very inefficiently written, but gets the job done
 %implemented for linear potentials and circularly symmetric potentials now.
 
-%this should all be in angstroms. Might need to change that later
-angs_to_cm = 1e-8;
+%this should all be in angstroms. Converted to meters at the end.
 geometrySizeExtra = 0;
 geometrySize = geometrySizeExtra;
 for index = 1:length(layerData)
-    geometrySize = geometrySize + layerData(index).thickness*angs_to_cm;
+    geometrySize = geometrySize + layerData(index).thickness;
 end
 
 if geometrySelect_index == 6
-    meshGen.X = 0:meshResolution*angs_to_cm:geometrySize;
+    meshGen.X = 0:meshResolution:geometrySize;
+    meshGen.Y = [];
 else
     meshGen.X = -geometrySize:meshResolution:geometrySize;
     meshGen.Y = -geometrySize:meshResolution:geometrySize;
@@ -364,40 +391,96 @@ for index = 2:length(layerData)
     thickness(index) = thickness(index-1) + layerData(index).thickness;
 end
 
-if geometrySelect_index == 6%Just 1-D
+%>> div D = charge density = 0, so D is constant in regions of 0 charge
+%density (ie, the dielectric we are modeling. I know that it won't be
+%true for non charge-neutral areas, but it should be OK as long as we
+%dont worry about build in potentials formed during device operation.
+%
+%>> Vbias = int(E dl)
+%>> Vbias = int(D / eps1 dl)from 0 to d1+int(D / eps2 dl)from d1 to d2+...
+%>> Vbias = D*d1/eps1+D*(d2-d1)/eps2+... = D*(d1/eps1+(d2-d1/eps2)+...)
+%>> D = Vbias / (d1/eps1+(d2-d1/eps2)+...)
+%>> E = D/Eps, so E1 = D/Eps1, E2 = D / Eps2, etc.
+thOverEpsTot = 0;
+for layerIndex = 1:length(layerData)
+    thOverEpsTot = thOverEpsTot + layerData(layerIndex).thickness / ...
+        layerData(layerIndex).epsRel(1);%Add in epsRel(2) to deal with alloys
+end
+D = bias / thOverEpsTot;
+for layerIndex = 1:length(layerData)-1%Exclude the free space stuck in automatically. It will skew the last point.
+    layerData(layerIndex).E = D / layerData(layerIndex).epsRel(1);
+end
+layerData(end).E = 0;
+xOffset(1) = 0;%for calculation of meshed bias
+for  index = 2:length(layerData)
+    xOffset(index) = xOffset(index-1)+layerData(index-1).thickness;
+end
+
+if geometrySelect_index == 6%Just 1-D    
+    %Look up the approprite layer data for the current mesh point.
     meshGen.Data = zeros(1,length(meshGen.X));
+    meshBias = zeros(1,length(meshGen.X));
     for indX = 1:length(meshGen.X)
         for index = 1:length(layerData)
-            if indX*meshResolution < thickness(index)
-                meshGen.Data(indX) = layerData(index).V*1.60217646e-12;
+            if meshGen.X(indX) <= thickness(index)
+                meshGen.Data(indX) = layerData(index).V(1);
+                if indX > 1
+                    meshBias(indX) = meshBias(indX-1)+meshResolution * layerData(index).E;
+                else
+                    meshBias(indX) = 0;
+                end
                 break;
             end
         end
     end
-%     meshGen.Data = layerData(1).V;%load the potential function
-%     for index = 1:length(layerData)
-%         %rounds boundaries up to the nearest whole number index. Will
-%         %overestimate the width of the boundaries.
-%         meshGen.Data(end:end+ceil(meshResolution* ...
-%             layerData(index).thickness)) = layerData(index).V;
-%     end
+    meshGen.Data = meshGen.Data + meshBias;
+    
 elseif geometrySelect_index == 1 %circular symmetry
     meshGen.Data = zeros(length(meshGen.X),length(meshGen.Y));
+    meshBias = (-1)*bias*ones(length(meshGen.X),length(meshGen.Y));
     %Go through each and every point and
     %figure out what the potential should be set to.
     for indX = 1:length(meshGen.X)
         for indY = 1:length(meshGen.Y)
             for index = 1:length(layerData)
                 if sqrt(meshGen.X(indX)^2+meshGen.Y(indY)^2) ...
-                        < thickness(index)
+                        <= thickness(index)
+                    if indX == 46 && indY == 94
+                        'BREAKPOINT';
+                    end
                     %This will keep changing it until it is the right one.
                     meshGen.Data(indX,indY) = layerData(index).V;
+                    if index == 1
+                        meshBias(indX,indY) = (-1)*(sqrt((meshGen.X(indX))^2 ...
+                            +(meshGen.Y(indY))^2)-0)* ...
+                            layerData(index).E;
+                    else%if index < length(layerData) - 1 && index > 1
+                        biasOffset = 0;
+                        for biasIndex = 1:index-1
+                            biasOffset = biasOffset+layerData(biasIndex).thickness* ...
+                                layerData(biasIndex).E;
+                        end
+                        meshBias(indX,indY) = (-1)*(sqrt((meshGen.X(indX))^2 ...
+                            +(meshGen.Y(indY))^2)-thickness(index-1))* ...
+                            layerData(index).E - biasOffset;
+                    end
                     break;
                 end
             end
         end
     end
+    meshBias = meshBias - min(min(meshBias));
+    meshGen.Data = meshGen.Data+meshBias;
 end
+
+
+%Convert mesh from Angstroms to centimeters.
+meshGen.X = meshGen.X*1e-8;
+if ~isempty(meshGen.Y)
+    meshGen.Y = meshGen.Y*1e-8;
+end
+%Convert mesh from eV to ergs
+meshGen.Data = meshGen.Data*1.60217646e-12;
 
 %%
 
