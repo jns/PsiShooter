@@ -22,7 +22,7 @@ function varargout = psiShooterGUI(varargin)
 
 % Edit the above text to modify the response to help psiShooterGUI
 
-% Last Modified by GUIDE v2.5 19-May-2009 09:59:57
+% Last Modified by GUIDE v2.5 21-May-2009 14:10:12
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,12 +55,13 @@ function psiShooterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to psiShooterGUI (see VARARGIN)
 
 %Global data set
-global data psi vPath;
+global data psi vPath binPath;
 %clear the global variables in case this program is being run twice in the
 %same instance of matlab.
 data = [];
 psi = [];
 vPath = [];
+binPath = [];
 
 % Choose default command line output for psiShooterGUI
 handles.output = hObject;
@@ -283,7 +284,7 @@ function simulateButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %Precede the shell command with ! to execute.
-global vPath;
+global vPath binPath;
 
 simulateMenu_index = get(handles.simulateMenu, 'Value');
 currSysMessText = get(handles.systemMessages, 'String');
@@ -301,15 +302,21 @@ if unixOS
     [status,result] = unix('ls psi_shooter');
     if length(result) == 12
         %Then it found the binary
-        [status,messages] = unix(['./psi_shooter ' vPath ' -v']);
+        [status,messages] = unix(['./psi_shooter ' vPath]);
     else
+        [status,result] = unix('ls ../src/psi_shooter');
+        if length(result) == 19
+            %then it found the binary in the source directory.
+            [status,messages] = unix(['../src/psi_shooter ' vPath]);
+        else
         msgbox('Give me the path to the Psi Shooter binary!')
         [name,path] = uigetfile('','Select the Psi Shooter Binary');
         if isequal(filename,0) || isequal(pathname,0)
             return;
         end
-        filePath = [path name];
-        [status,messages] = unix([filePath ' ' vPath ' -v']);
+        binPath = [path name];
+        [status,messages] = unix([binPath ' ' vPath]);
+        end
     end
     if ~isempty(messages)
         currSysMessText = [{'---PSISHOOTER BINARY MESSAGES---'};{messages}; ...
@@ -378,18 +385,119 @@ end
 %%
 
 
-function edit1_Callback(hObject, eventdata, handles)
-% hObject    handle to edit1 (see GCBO)
+function filterButton_Callback(hObject, eventdata, handles)
+% hObject    handle to filterButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit1 as text
-%        str2double(get(hObject,'String')) returns contents of edit1 as a double
+% Hints: get(hObject,'String') returns contents of filterButton as text
+%        str2double(get(hObject,'String')) returns contents of filterButton as a double
 
+global psi data;
+filterString = get(handles.filterInput,'String');
+parseCommas = find(filterString == ',');
+parseDashes = find(filterString == '-');
+parseSpaces = find(filterString == ' ');
+if ~isempty(parseCommas)
+    plotIndices = str2num(filterString(:,parseCommas(1)-1));
+    for parseIndex = 1:length(parseCommas)
+        plotIndices(parseIndex+1) = str2num(filterString(...
+            parseCommas(parseCommas(parseIndex),parseCommas(parseIndex+1))));
+    end
+elseif ~isempty(parseDashes)
+    startValue = filterString(parseDashes(1)-1);
+    endValue = filterString(parseDashes(1)+1);
+    plotIndices = startValue:endValue;
+elseif ~isempty(parseSpaces)
+    plotIndices = str2num(filterString(:,parseSpaces(1)-1));
+    for parseIndex = 1:length(parseSpaces)
+        plotIndices(parseIndex+1) = str2num(filterString(...
+            parseCommas(parseSpaces(parseIndex),parseSpaces(parseIndex+1))));
+    end
+end
+
+
+cla;%clear the plot window
+if isempty(psi(1).x)
+    return
+elseif or(length(psi(1).x)==1,length(psi(1).y)==1)
+    if length(psi(1).x) == 1
+        %checking to see if the length of the potential data is larget
+        %than the length of the solution data is a cheap hack to see if
+        %the data structure  is 2d or not. There are better ways of
+        %doing this, but it is late, and I'd rather write a long
+        %comment than correct what I just wrote.
+        if isempty(data) || length(data(1).data) > length(psi(1).data)
+            solInput = [{psi(1).y},...
+                {zeros(1,length(psi(1).y))},{'black'},{0}];
+        else
+            solInput = [{data(1).y},...
+                {length(data(1).data)},{'black'},{0}];
+        end
+
+        for index = plotIndices
+            if index == 1%Set the colors for each fucntion.
+                %This should be done with a function, but here's a
+                %quick soltion.
+                color = 'red';
+            elseif index == 2
+                color = 'green';
+            elseif index == 3
+                color = 'blue';
+            else
+                color = 'randomize';
+            end
+            solInput = [solInput,{psi(index).y}, ...
+                {psi(index).data},{color},{energies(index)}];
+        end
+    else
+        if isempty(data) || length(data(1).data) > length(psi(1).data)
+            solInput = [{psi(1).x},...
+                {zeros(1,length(psi(1).x))},{'black'},{0}];
+        else
+            solInput = [{data(1).x},...
+                {data(1).data/1.60217646e-12},{'black'},{0}];
+        end
+        for index = plotIndices
+            if index == 1%Set the colors for each fucntion.
+                %This should be done with a function, but here's a
+                %quick soltion.
+                color = 'red';
+            elseif index == 2
+                color = 'green';
+            elseif index == 3
+                color = 'blue';
+            else
+                color = 'randomize';
+            end
+            solInput = [solInput,{psi(index).x}, ...
+                {psi(index).data},{color},{energies(index)}];
+        end
+    end
+    visualize1D(solInput);
+    set(handles.rotateEnable,'Enable','off');
+elseif and(length(psi.x)>1,length(psi.y)>1)
+    if isempty(data)
+        solInput = [{psi(1).x},{psi(1).y},...
+            {zeros(length(psi(1).x),length(psi(1).y))},{0}];
+    else
+        solInput = [{data(1).x},{data(1).y},...
+            {data(1).data},{0}];
+    end
+    for index = plotIndices
+        solInput = [solInput,{psi(index).x},{psi(index).y}, ...
+            {psi(index).data},{energies(index)}];
+    end
+    visualize2D(solInput)
+    set(handles.rotateEnable,'Enable','on');
+end
+%Enable the plot control toggle buttons
+set(handles.panEnable,'Enable','on');
+set(handles.zoomEnable,'Enable','on');
 
 % --- Executes during object creation, after setting all properties.
-function edit1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit1 (see GCBO)
+function filterButton_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to filterButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -400,19 +508,18 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-
-function edit2_Callback(hObject, eventdata, handles)
-% hObject    handle to edit2 (see GCBO)
+function filterInput_Callback(hObject, eventdata, handles)
+% hObject    handle to filterInput (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit2 as text
-%        str2double(get(hObject,'String')) returns contents of edit2 as a double
+% Hints: get(hObject,'String') returns contents of filterInput as text
+%        str2double(get(hObject,'String')) returns contents of filterInput as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function edit2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit2 (see GCBO)
+function filterInput_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to filterInput (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -697,15 +804,26 @@ for n = 1:4:narginC
     offset{ceil(n/4)} = vararginC{n+3};
 end
 
-%axes(handles.simPlot);
+legendText = [];
 for n = 1:1:narginC/4
     if strcmp(color{n},'randomize')
         plot(X(:,n),Y(:,n)+offset{n},'Color',[rand(1),rand(1),rand(1)]);
+        legendText = [legendText;[{'#'} num2str(n) {' '} ...
+            {num2str(offset{n})} {' eV'}]];
+    elseif strcmp(color{n},'black')
+        plot(X(:,n),Y(:,n)+offset{n},color{n})
     else
         plot(X(:,n),Y(:,n)+offset{n},color{n})
+        legendText = [legendText;[{'#'} num2str(n) {' '} ...
+            {num2str(offset{n})} {' eV'}]];
+    end
+    if n == 1
+        legendText = {'Potential Structure'};
     end
     hold on;
 end
+legend(legendText);
+xlabel('Position (nm)');
 hold off
 'end';% a good place to stick a breakpoint for playing with the plots.
 
