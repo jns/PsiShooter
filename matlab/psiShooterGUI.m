@@ -150,7 +150,7 @@ switch loadMenu_index
         %get the file path if none is specified in the text box
         if or(isempty(filePath),strcmp(filePath,'Input File Path'))
             [name,path] = uigetfile({'*.*'});
-            if isequal(filename,0) || isequal(pathname,0)
+            if isequal(name,0) || isequal(path,0)
                 return;
             end
             filePath = [path name];
@@ -182,7 +182,7 @@ switch loadMenu_index
         cla;%clear the plot window
         if isempty(potential.x)
             return
-        elseif or(isempty(potential.x),isempty(potential.y))
+        elseif or(length(potential.x) == 1,length(potential.y)==1)
             if length(potential.x) == 1
                 visualize1D(potential.y,potential.data,'red',0);
             else
@@ -471,7 +471,7 @@ try
                     {zeros(1,length(psi(1).x))},{'black'},{0}];
             else
                 solInput = [{data(1).x},...
-                    {data(1).data},{'black'},{0}];
+                    {data(1).data/1.60217646e-12},{'black'},{0}];
             end
             for index = 1:length(psi)
                 if index == 1%Set the colors for each fucntion.

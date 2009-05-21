@@ -399,7 +399,7 @@ int main(int argc, char **argv) {
 	PS_SOLVE_PARAMETERS params;
 	params.energy_min = ps_data_min_value(potential);
 	params.energy_max = ps_data_max_value(potential);
-	params.n_iter = 1000; // The number of energies to try
+	params.n_iter = 10000; // The number of energies to try
 	double e_step = (params.energy_max - params.energy_min)/(params.n_iter);
 		
 	// Create a list for solutions
@@ -415,7 +415,7 @@ int main(int argc, char **argv) {
 		// the test energy E and saves the solution for the larger energy
 		params.energy_min = s->energy - e_step;
 		params.energy_max = s->energy;
-		params.n_iter = 500;
+		params.n_iter = 10000;
 		
 		// Add the fine grain solutions to the final list
 		PS_LIST e_solutions = ps_solve_1D(potential, &params);
