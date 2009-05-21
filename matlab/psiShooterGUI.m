@@ -105,7 +105,7 @@ switch loadMenu_index
         getPotential();
         set(handles.loadInput, 'String', 'SELECT YOUR NEW FILE');
     case 3
-        set(handles.loadInput, 'String', 'Syntax: "sin(x) 0:1e-9:1e-6"');
+        set(handles.loadInput, 'String', 'Ex:"sin(2*pi/1e-6*x) 0:1e-9:1e-6"');
     case 4
         set(handles.loadInput, 'String', '');
 end
@@ -205,9 +205,12 @@ switch loadMenu_index
         x = str2num(input(seperationIndex:end));
         potentialFunction = input(1:seperationIndex);
         potential.x = x;
+        potential.y = 0;
         potential.data = eval(potentialFunction);
         
-        currSysMessText =[{['Load Function: ' filePath]};currSysMessText];
+        currSysMessText =[{['Load Function: ' potentialFunction ...
+            ' from x=' num2str(min(potential.x)) ' to ' ...
+            num2str(max(potential.x))]};currSysMessText];
         set(handles.systemMessages, 'String', currSysMessText);
         
         cla;%clear the plot window
