@@ -1,0 +1,4 @@
+# Bound State Energies [eV]
+0.038015
+0.149699
+0.324893
