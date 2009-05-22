@@ -14,5 +14,6 @@ test_ps_list: ps_data.o ps_list.o ps_data_io.o test_ps_list.o
 	gcc ${CFLAGS} -c $<
 	
 clean:
-	rm psi_shooter
+	rm test_ps_data_io
 	rm *.o
+	rm psi_shooter

@@ -3,7 +3,8 @@
 #include <stdlib.h>
 
 PS_DATA ps_data_read_ascii(FILE *fptr) {
-	unsigned int rows, cols;
+	double rows_d, cols_d;
+	int rows, cols;
 	unsigned int i,j;
 	double *d;
 	PS_DATA retval;
@@ -12,8 +13,9 @@ PS_DATA ps_data_read_ascii(FILE *fptr) {
 	fseek(fptr, 0, SEEK_SET);
 	
 	// Read the rows and columns
-	fscanf(fptr, "%i\n%i\n", &cols, &rows);
-	printf("File at %i\n", ftell(fptr));
+	fscanf(fptr, "%le\n%le\n", &cols_d, &rows_d);
+	rows = (int)rows_d;
+	cols = (int)cols_d;
 	
 	// Create the data
 	retval = ps_data_create(rows, cols);
@@ -22,10 +24,7 @@ PS_DATA ps_data_read_ascii(FILE *fptr) {
 	d = (double*)malloc(sizeof(double)*cols);
 	double dval;
 	for(i=0; i<cols; i++) {
-		fscanf(fptr,"%e ", &dval);
-		printf("File at %i\n", ftell(fptr));
-//		fseek(fptr, 1, SEEK_CUR);
-		printf("%g ", dval);
+		fscanf(fptr,"%le ", &dval);
 	}
 	ps_data_set_x_values(retval, d);
 	free(d);
@@ -33,7 +32,7 @@ PS_DATA ps_data_read_ascii(FILE *fptr) {
 	// Read the Y values
 	d = (double*)malloc(sizeof(double)*rows);
 	for(i=0; i<rows; i++) {
-		fscanf(fptr, "%e", (d+i));
+		fscanf(fptr, "%le", (d+i));
 	}
 	ps_data_set_y_values(retval, d);
 	free(d);

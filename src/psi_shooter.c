@@ -501,12 +501,12 @@ int main(int argc, char **argv) {
 		sprintf(msg, "No file specified. Using builtin potential.\n");
 		ps_log(msg);
 		//get a 1D test potential
-		potential = test_potential_2D();
-
-		FILE *f = fopen("V_2d.dat", "w");
-		ps_data_write_bin(potential, f);
-		fclose(f);
-		return 0;
+		potential = test_potential_1D();
+		// 
+		// FILE *f = fopen("V_2d.dat", "w");
+		// ps_data_write_bin(potential, f);
+		// fclose(f);
+		// return 0;
 		
 	} else if (2 == argc) {
 		// Interpret argument as file to process
