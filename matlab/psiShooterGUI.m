@@ -22,7 +22,7 @@ function varargout = psiShooterGUI(varargin)
 
 % Edit the above text to modify the response to help psiShooterGUI
 
-% Last Modified by GUIDE v2.5 21-May-2009 14:10:12
+% Last Modified by GUIDE v2.5 21-May-2009 20:49:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,7 +55,7 @@ function psiShooterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to psiShooterGUI (see VARARGIN)
 
 %Global data set
-global data psi vPath binPath;
+global data psi energies vPath binPath;
 %clear the global variables in case this program is being run twice in the
 %same instance of matlab.
 data = [];
@@ -208,6 +208,8 @@ switch loadMenu_index
         potential.x = x;
         potential.y = 0;
         potential.data = eval(potentialFunction);
+        data = potential(1);
+        data.data = data.data*1.60217646e-12;
         
         currSysMessText =[{['Load Function: ' potentialFunction ...
             ' from x=' num2str(min(potential.x)) ' to ' ...
@@ -230,6 +232,11 @@ switch loadMenu_index
         set(handles.rotateEnable,'Enable','on');
         set(handles.panEnable,'Enable','on');
         set(handles.zoomEnable,'Enable','on');
+        
+        vPath = 'potentialFromFunction';
+        
+        %write the function defined potential to a file scaled into ergs.
+        writeFile(potential.x,potential.y,1.60217646e-12*potential.data,vPath);
     case 4
         currSysMessText =[{'Load Default Potential'};currSysMessText];
         set(handles.systemMessages, 'String', currSysMessText);
@@ -284,7 +291,7 @@ function simulateButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %Precede the shell command with ! to execute.
-global vPath binPath;
+global data psi energies vPath binPath;
 
 simulateMenu_index = get(handles.simulateMenu, 'Value');
 currSysMessText = get(handles.systemMessages, 'String');
@@ -302,30 +309,141 @@ if unixOS
     [status,result] = unix('ls psi_shooter');
     if length(result) == 12
         %Then it found the binary
-        [status,messages] = unix(['./psi_shooter ' vPath]);
+        binPath = './psi_shooter';
     else
         [status,result] = unix('ls ../src/psi_shooter');
         if length(result) == 19
             %then it found the binary in the source directory.
-            [status,messages] = unix(['../src/psi_shooter ' vPath]);
+            binPath = '../src/psi_shooter ';
         else
-        msgbox('Give me the path to the Psi Shooter binary!')
-        [name,path] = uigetfile('','Select the Psi Shooter Binary');
-        if isequal(filename,0) || isequal(pathname,0)
-            return;
+            msgbox('Give me the path to the Psi Shooter binary!')
+            [name,path] = uigetfile('','Select the Psi Shooter Binary');
+            if isequal(filename,0) || isequal(pathname,0)
+                return;
+            end
+            binPath = [path name];
         end
-        binPath = [path name];
         [status,messages] = unix([binPath ' ' vPath]);
-        end
     end
     if ~isempty(messages)
-        currSysMessText = [{'---PSISHOOTER BINARY MESSAGES---'};{messages}; ...
-            {'---PSISHOOTER BINARY MESSAGES---'}];
+        if length(messages) > 1000
+            currSysMessText = [{'---PSISHOOTER BINARY MESSAGES---'};...
+                {'Messages too long. Contents clipped.'};...
+                {messages(end-256:end)}; ...
+            {'---PSISHOOTER BINARY MESSAGES---'};...
+            currSysMessText];
+        else
+        currSysMessText = [{'---PSISHOOTER BINARY MESSAGES---'};...
+            {messages}; ...
+            {'---PSISHOOTER BINARY MESSAGES---'};...
+            currSysMessText];
+        end
     end
 else
     msgbox(['Your operating system is not yet fully supported. ' ...
         'Please edit psiShooterGUI.m to add support']);
 end
+set(handles.systemMessages, 'String',currSysMessText);
+
+%Assuming that these are in the present working directory
+[psi,messages] = loadData('BS.dat');
+currSysMessText =[messages;currSysMessText];
+
+[energies,messages] = loadEnergies('E.txt');
+currSysMessText =[messages;currSysMessText];
+if isempty(energies)
+    energies(1:length(psi)) = [1:length(psi)];
+end
+if length(energies) ~= length(psi)
+    currSysMessText =[{'Different number of bound states'}; ...
+        {'found than solutions found in file'};currSysMessText];
+end
+set(handles.systemMessages, 'String', currSysMessText);
+
+try
+    cla;%clear the plot window
+    if isempty(psi(1).x)
+        return
+    elseif or(length(psi(1).x)==1,length(psi(1).y)==1)
+        if length(psi(1).x) == 1 
+            %checking to see if the length of the potential data is larget
+            %than the length of the solution data is a cheap hack to see if
+            %the data structure  is 2d or not. There are better ways of
+            %doing this, but it is late, and I'd rather write a long
+            %comment than correct what I just wrote.
+            if isempty(data) || length(data(1).data) > length(psi(1).data)
+                solInput = [{psi(1).y},...
+                    {zeros(1,length(psi(1).y))},{'black'},{0}];
+            else
+                solInput = [{data(1).y},...
+                    {data(1).data/1.60217646e-12},{'black'},{0}];
+            end
+            for index = 1:length(psi)
+                if index == 1%Set the colors for each fucntion.
+                    %This should be done with a function, but here's a
+                    %quick soltion.
+                    color = 'red';
+                elseif index == 2
+                    color = 'green';
+                elseif index == 3
+                    color = 'blue';
+                else
+                    color = 'randomize';
+                end
+                solInput = [solInput,{psi(index).y}, ...
+                    {psi(index).data},{color},{energies(index)}];
+            end
+        else
+            if isempty(data) || length(data(1).data) > length(psi(1).data)
+                solInput = [{psi(1).x},...
+                    {zeros(1,length(psi(1).x))},{'black'},{0}];
+            else
+                solInput = [{data(1).x},...
+                    {data(1).data/1.60217646e-12},{'black'},{0}];
+            end
+            for index = 1:length(psi)
+                if index == 1%Set the colors for each fucntion.
+                    %This should be done with a function, but here's a
+                    %quick soltion.
+                    color = 'red';
+                elseif index == 2
+                    color = 'green';
+                elseif index == 3
+                    color = 'blue';
+                else
+                    color = 'randomize';
+                end
+                solInput = [solInput,{psi(index).x}, ...
+                    {psi(index).data},{color},{energies(index)}];
+            end
+        end
+        visualize1D(solInput);
+        set(handles.rotateEnable,'Enable','off');
+    elseif and(length(psi.x)>1,length(psi.y)>1)
+        if isempty(data)
+            solInput = [{psi(1).x},{psi(1).y},...
+                {zeros(length(psi(1).x),length(psi(1).y))},{0}];
+        else
+            solInput = [{data(1).x},{data(1).y},...
+                {data(1).data},{0}];
+        end
+        for index = 1:length(psi)
+            solInput = [solInput,{psi(index).x},{psi(index).y}, ...
+                {psi(index).data},{energies(index)}];
+        end
+        visualize2D(solInput)
+        set(handles.rotateEnable,'Enable','on');
+    end
+    %Enable the plot control toggle buttons
+    set(handles.panEnable,'Enable','on');
+    set(handles.zoomEnable,'Enable','on');
+catch
+    
+    currSysMessText =['Solutions failed to plot';currSysMessText];
+
+    set(handles.systemMessages,'String',currSysMessText);
+end
+
 
 %%
 
@@ -393,7 +511,7 @@ function filterButton_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of filterButton as text
 %        str2double(get(hObject,'String')) returns contents of filterButton as a double
 
-global psi data;
+global psi data energies;
 filterString = get(handles.filterInput,'String');
 parseCommas = find(filterString == ',');
 parseDashes = find(filterString == '-');
@@ -401,21 +519,32 @@ parseSpaces = find(filterString == ' ');
 if ~isempty(parseCommas)
     plotIndices = str2num(filterString(:,parseCommas(1)-1));
     for parseIndex = 1:length(parseCommas)
-        plotIndices(parseIndex+1) = str2num(filterString(...
-            parseCommas(parseCommas(parseIndex),parseCommas(parseIndex+1))));
+        if length(parseCommas) > parseIndex
+            plotIndices(parseIndex+1) = str2num(filterString(...
+                parseCommas(parseIndex):parseCommas(parseIndex+1)));
+        else
+            plotIndices(parseIndex+1) = str2num(filterString(...
+                parseCommas(parseIndex):end));
+        end
     end
 elseif ~isempty(parseDashes)
-    startValue = filterString(parseDashes(1)-1);
-    endValue = filterString(parseDashes(1)+1);
+    startValue = str2num(filterString(1:parseDashes(1)-1));
+    endValue = str2num(filterString(parseDashes(1)+1:end));
     plotIndices = startValue:endValue;
 elseif ~isempty(parseSpaces)
     plotIndices = str2num(filterString(:,parseSpaces(1)-1));
     for parseIndex = 1:length(parseSpaces)
-        plotIndices(parseIndex+1) = str2num(filterString(...
-            parseCommas(parseSpaces(parseIndex),parseSpaces(parseIndex+1))));
+        if length(parseSpaces) > parseIndex
+            plotIndices(parseIndex+1) = str2num(filterString(...
+                parseSpaces(parseIndex):parseSpaces(parseIndex+1)));
+        else
+            plotIndices(parseIndex+1) = str2num(filterString(...
+                parseSpaces(parseIndex):end));
+        end
     end
+else
+    plotIndices = 1:length(psi);
 end
-
 
 cla;%clear the plot window
 if isempty(psi(1).x)
@@ -539,7 +668,7 @@ function loadSolutionButton_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of loadSolutionButton as text
 %        str2double(get(hObject,'String')) returns contents of loadSolutionButton as a double
 
-global psi data;
+global psi data energies;
 
 currSysMessText = get(handles.systemMessages, 'String');
 
@@ -798,8 +927,13 @@ for n = 1:4:narginC
     Y(:,ceil(n/4)) = vararginC{n+1};
     if n > 1
         %Normalize the 1D plot values the Y values
-        Y(:,ceil(n/4)) = (max(Y(:,1))-min(Y(:,1))) * (2e-7) * Y(:,ceil(n/4)).^2 /...
-            (sum(Y(:,ceil(n/4)).^2) *(X(2)-X(1)));
+        if ~((max(Y(:,1))-min(Y(:,1))) == 0)
+            Y(:,ceil(n/4)) = (max(Y(:,1))-min(Y(:,1))) * (2e-7) * Y(:,ceil(n/4)).^2 /...
+                (sum(Y(:,ceil(n/4)).^2) *(X(2)-X(1)));
+        else
+            Y(:,ceil(n/4)) = (2e-7) * Y(:,ceil(n/4)).^2 /...
+                (sum(Y(:,ceil(n/4)).^2) *(X(2)-X(1)));
+        end
     end
     color{ceil(n/4)} = vararginC{n+2};
     offset{ceil(n/4)} = vararginC{n+3};
@@ -913,7 +1047,8 @@ function [data,messages] = loadData(path)
 %will default to binary.
 
 try
-    fidP = fopen(path,'r','ieee-le.l64');
+    %fidP = fopen(path,'r','ieee-le.l64');
+    fidP = fopen(path,'r');
 catch
     data = [];
     messages = {'DATA FILE FAILED TO LOAD'};
@@ -998,3 +1133,66 @@ catch
     return
 end
 
+%%
+%grabbed from getPotential.m
+function writeFile(X,Y,Data,path)
+%writeFile(X,Y,Data,fileName)
+
+if Y == 0
+    yLength = 1;
+else
+    yLength=length(Y);
+end
+
+try
+    %fidP = fopen(path,'w','ieee-le.l64');
+    fidP = fopen(path,'w');
+    if strcmp(path(end-3:end),'.txt')
+        %ascii or unicode
+        fprintf(fidP,'%e\n',length(X));
+        fprintf(fidP,'%e\n',yLength);
+        fprintf(fidP,'%e ',X);
+        %fprintf(fidP,'%s','\n');
+        fprintf(fidP,'%e ',Y);
+        %fprintf(fidP,'%s','\n');
+        fprintf(fidP,'%e ',Data);
+    else
+        %binary
+        fwrite(fidP,length(X),'float64');
+        fwrite(fidP,yLength,'float64');
+        fwrite(fidP,X,'float64');
+        fwrite(fidP,Y,'float64');
+        fwrite(fidP,Data,'float64');
+    end
+    
+    fclose(fidP);
+catch
+    fclose(fidP);
+    return
+end
+
+
+% --------------------------------------------------------------------
+function menu_Callback(hObject, eventdata, handles)
+% hObject    handle to menu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menuExit_Callback(hObject, eventdata, handles)
+% hObject    handle to menuExit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+fclose('all');
+clear('all');
+close('all');
+
+% --------------------------------------------------------------------
+function menuCredits_Callback(hObject, eventdata, handles)
+% hObject    handle to menuCredits (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+msgbox([{'PSI SHOOTER TEAM'};{''};{'Jere Harrison'};{'Joshua Shapiro'};{'Cyrus Haselby'}])

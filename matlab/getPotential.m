@@ -503,7 +503,8 @@ else
 end
 
 try
-    fidP = fopen(path,'w','ieee-le.l64');
+    %fidP = fopen(path,'w','ieee-le.l64');
+    fidP = fopen(path,'w');
     if strcmp(path(end-3:end),'.txt')
         %ascii or unicode
         fprintf(fidP,'%e\n',length(X));
