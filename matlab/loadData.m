@@ -29,7 +29,7 @@ try
     while ftell(fidP) < fileEnd - 8
         index = index + 1;
         messages = [];
-        if strcmp(path(end-3:end),'.txt')`
+        if strcmp(path(end-3:end),'.txt')
             %ascii or unicode
             xNum(index) = fscanf(fidP,'%e',1);
             yNum(index) = fscanf(fidP,'%e',1);
