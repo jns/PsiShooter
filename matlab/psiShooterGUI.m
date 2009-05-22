@@ -55,7 +55,7 @@ function psiShooterGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to psiShooterGUI (see VARARGIN)
 
 %Global data set
-global data psi vPath binPath;
+global data psi energies vPath binPath;
 %clear the global variables in case this program is being run twice in the
 %same instance of matlab.
 data = [];
@@ -230,6 +230,10 @@ switch loadMenu_index
         set(handles.rotateEnable,'Enable','on');
         set(handles.panEnable,'Enable','on');
         set(handles.zoomEnable,'Enable','on');
+        
+        vPath = 'potentialFromFunction';
+        
+        writeFile(potential.x,potential.y,potential.data,vPath);
     case 4
         currSysMessText =[{'Load Default Potential'};currSysMessText];
         set(handles.systemMessages, 'String', currSysMessText);
@@ -393,7 +397,7 @@ function filterButton_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of filterButton as text
 %        str2double(get(hObject,'String')) returns contents of filterButton as a double
 
-global psi data;
+global psi data energies;
 filterString = get(handles.filterInput,'String');
 parseCommas = find(filterString == ',');
 parseDashes = find(filterString == '-');
@@ -401,18 +405,28 @@ parseSpaces = find(filterString == ' ');
 if ~isempty(parseCommas)
     plotIndices = str2num(filterString(:,parseCommas(1)-1));
     for parseIndex = 1:length(parseCommas)
-        plotIndices(parseIndex+1) = str2num(filterString(...
-            parseCommas(parseCommas(parseIndex),parseCommas(parseIndex+1))));
+        if length(parseCommas) > parseIndex+1
+            plotIndices(parseIndex+1) = str2num(filterString(...
+                parseCommas(parseIndex):parseCommas(parseIndex+1)));
+        else
+            plotIndices(parseIndex+1) = str2num(filterString(...
+                parseCommas(parseIndex):end));
+        end
     end
 elseif ~isempty(parseDashes)
-    startValue = filterString(parseDashes(1)-1);
-    endValue = filterString(parseDashes(1)+1);
+    startValue = str2num(filterString(parseDashes(1)-1));
+    endValue = str2num(filterString(parseDashes(1)+1));
     plotIndices = startValue:endValue;
 elseif ~isempty(parseSpaces)
     plotIndices = str2num(filterString(:,parseSpaces(1)-1));
     for parseIndex = 1:length(parseSpaces)
-        plotIndices(parseIndex+1) = str2num(filterString(...
-            parseCommas(parseSpaces(parseIndex),parseSpaces(parseIndex+1))));
+        if length(parseSpaces) > (parseIndex+1)
+            plotIndices(parseIndex+1) = str2num(filterString(...
+                parseSpaces(parseIndex):parseSpaces(parseIndex+1)));
+        else
+            plotIndices(parseIndex+1) = str2num(filterString(...
+                parseSpaces(parseIndex):end));
+        end
     end
 end
 
@@ -539,7 +553,7 @@ function loadSolutionButton_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of loadSolutionButton as text
 %        str2double(get(hObject,'String')) returns contents of loadSolutionButton as a double
 
-global psi data;
+global psi data energies;
 
 currSysMessText = get(handles.systemMessages, 'String');
 
@@ -798,8 +812,13 @@ for n = 1:4:narginC
     Y(:,ceil(n/4)) = vararginC{n+1};
     if n > 1
         %Normalize the 1D plot values the Y values
-        Y(:,ceil(n/4)) = (max(Y(:,1))-min(Y(:,1))) * (2e-7) * Y(:,ceil(n/4)).^2 /...
-            (sum(Y(:,ceil(n/4)).^2) *(X(2)-X(1)));
+        if ~((max(Y(:,1))-min(Y(:,1))) == 0)
+            Y(:,ceil(n/4)) = (max(Y(:,1))-min(Y(:,1))) * (2e-7) * Y(:,ceil(n/4)).^2 /...
+                (sum(Y(:,ceil(n/4)).^2) *(X(2)-X(1)));
+        else
+            Y(:,ceil(n/4)) = (2e-7) * Y(:,ceil(n/4)).^2 /...
+                (sum(Y(:,ceil(n/4)).^2) *(X(2)-X(1)));
+        end
     end
     color{ceil(n/4)} = vararginC{n+2};
     offset{ceil(n/4)} = vararginC{n+3};
@@ -998,3 +1017,41 @@ catch
     return
 end
 
+%%
+%grabbed from getPotential.m
+function writeFile(X,Y,Data,path)
+%writeFile(X,Y,Data,fileName)
+
+if Y == 0
+    yLength = 1;
+else
+    yLength=length(Y);
+end
+
+try
+    fidP = fopen(path,'w','ieee-le.l64');
+    if strcmp(path(end-3:end),'.txt')
+        %ascii or unicode
+        fprintf(fidP,'%e\n',length(X));
+        fprintf(fidP,'%e\n',yLength);
+        fprintf(fidP,'%e ',X);
+        %fprintf(fidP,'%s','\n');
+        fprintf(fidP,'%e ',Y);
+        %fprintf(fidP,'%s','\n');
+        fprintf(fidP,'%e ',Data);
+    else
+        %binary
+        fwrite(fidP,length(X),'float64');
+        fwrite(fidP,yLength,'float64');
+        fwrite(fidP,X,'float64');
+        if (yLength ~= 1)
+            fwrite(fidP,Y,'float64');
+        end
+        fwrite(fidP,Data,'float64');
+    end
+    
+    fclose(fidP);
+catch
+    fclose(fidP);
+    return
+end
