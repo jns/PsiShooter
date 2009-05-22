@@ -306,25 +306,30 @@ if unixOS
     [status,result] = unix('ls psi_shooter');
     if length(result) == 12
         %Then it found the binary
-        [status,messages] = unix(['./psi_shooter ' vPath]);
+        binPath = './psi_shooter';
     else
         [status,result] = unix('ls ../src/psi_shooter');
         if length(result) == 19
             %then it found the binary in the source directory.
-            [status,messages] = unix(['../src/psi_shooter ' vPath]);
+            binPath = '../src/psi_shooter ';
         else
-        msgbox('Give me the path to the Psi Shooter binary!')
-        [name,path] = uigetfile('','Select the Psi Shooter Binary');
-        if isequal(filename,0) || isequal(pathname,0)
-            return;
+            msgbox('Give me the path to the Psi Shooter binary!')
+            [name,path] = uigetfile('','Select the Psi Shooter Binary');
+            if isequal(filename,0) || isequal(pathname,0)
+                return;
+            end
+            binPath = [path name];
         end
-        binPath = [path name];
         [status,messages] = unix([binPath ' ' vPath]);
-        end
     end
     if ~isempty(messages)
+        if length(messages) > 1000
+            currSysMessText = [{'---PSISHOOTER BINARY MESSAGES---'};{messages(end-256:end)}; ...
+            {'---PSISHOOTER BINARY MESSAGES---'}];
+        else
         currSysMessText = [{'---PSISHOOTER BINARY MESSAGES---'};{messages}; ...
             {'---PSISHOOTER BINARY MESSAGES---'}];
+        end
     end
 else
     msgbox(['Your operating system is not yet fully supported. ' ...
@@ -932,7 +937,8 @@ function [data,messages] = loadData(path)
 %will default to binary.
 
 try
-    fidP = fopen(path,'r','ieee-le.l64');
+    %fidP = fopen(path,'r','ieee-le.l64');
+    fidP = fopen(path,'r');
 catch
     data = [];
     messages = {'DATA FILE FAILED TO LOAD'};
@@ -1029,7 +1035,8 @@ else
 end
 
 try
-    fidP = fopen(path,'w','ieee-le.l64');
+    %fidP = fopen(path,'w','ieee-le.l64');
+    fidP = fopen(path,'w');
     if strcmp(path(end-3:end),'.txt')
         %ascii or unicode
         fprintf(fidP,'%e\n',length(X));
@@ -1044,9 +1051,7 @@ try
         fwrite(fidP,length(X),'float64');
         fwrite(fidP,yLength,'float64');
         fwrite(fidP,X,'float64');
-        if (yLength ~= 1)
-            fwrite(fidP,Y,'float64');
-        end
+        fwrite(fidP,Y,'float64');
         fwrite(fidP,Data,'float64');
     end
     
