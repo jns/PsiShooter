@@ -22,7 +22,7 @@ function varargout = psiShooterGUI(varargin)
 
 % Edit the above text to modify the response to help psiShooterGUI
 
-% Last Modified by GUIDE v2.5 21-May-2009 14:10:12
+% Last Modified by GUIDE v2.5 21-May-2009 20:49:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1167,3 +1167,29 @@ catch
     fclose(fidP);
     return
 end
+
+
+% --------------------------------------------------------------------
+function menu_Callback(hObject, eventdata, handles)
+% hObject    handle to menu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menuExit_Callback(hObject, eventdata, handles)
+% hObject    handle to menuExit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+fclose('all');
+clear('all');
+close('all');
+
+% --------------------------------------------------------------------
+function menuCredits_Callback(hObject, eventdata, handles)
+% hObject    handle to menuCredits (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+msgbox([{'PSI SHOOTER TEAM'};{''};{'Jere Harrison'};{'Joshua Shapiro'};{'Cyrus Haselby'}])
