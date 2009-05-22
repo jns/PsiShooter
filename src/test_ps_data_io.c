@@ -1,10 +1,6 @@
 #include "ps_data_io.h"
 #include <stdio.h>
 
-int main(int argc, char **argv) {
-	return read_print(argc, argv);
-}
-
 int create_write(int argc, char **argv) {
 
 	if (2 != argc) {
@@ -55,7 +51,6 @@ int read_print(int argc, char **argv) {
 }
 
 int read_ascii(int argc, char **argv) {
-	int i,j;
 	if (2 != argc) {
 		printf("read_ascii infile");
 		return 1;
@@ -72,7 +67,7 @@ int read_ascii(int argc, char **argv) {
 }
 
 int read_write(int argc, char **argv) {
-	int i,j;
+	int i;
 	
 	if (3 != argc) {
 		printf("test_ps_data infile outfile\n");
@@ -92,7 +87,6 @@ int read_write(int argc, char **argv) {
 
 	int rows = ps_data_rows(data);
 	int cols = ps_data_columns(data);
-	double v;
 	
 	printf("Read %s\n", infname);
 	printf("rows=%i , cols=%i\n", rows, cols);
@@ -122,3 +116,8 @@ int read_write(int argc, char **argv) {
 	// }
 	return 0;
 }	
+
+int main(int argc, char **argv) {
+	return read_print(argc, argv);
+}
+
