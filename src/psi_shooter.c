@@ -230,6 +230,138 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 }
 
 //
+//The 2D version of the solving engine.
+//
+//intial eqn                 
+//-->  Div*F = G/M	
+//
+//convert to finite diff eqn, use a uniform mesh, Let, dx = dy = d  and Let P[x,y] = G[x,y]/M[x,y] = G*m
+//-->  (F[x+d,y]-2F[x,y]+F[x-d,y])/d^2 + (F[x,y+d]-2F[x,y]+F[x,y-d])/d^2 = P[x,y]
+//
+//rearrange:
+//-->  F[x+d,y] + F[x-d,y] + F[x,y+d] + F[x,y-d] - 4F[x,y] = d^2 * P[x,y]
+//
+//convert to c style: Let x = x0+j*d     and    y = y0+l*d 
+//                  where j = 0,1,2...J  and    l = 0,1,2...L
+//-->  F[j+1,l] + F[j-1,l] + F[j,l+1] + F[j,l-1] - 4F[j,l] = d^2 * P[j,l]y
+//
+//Goal: make a linear system of eqns in matrix form -- firstly we make a vector out of F. i.e. map j,l to a linear index 'i'
+//     Let, i = j(L+1) + l   ...where j = 0,1,...J and l = 0,1,...L
+//-->  F[i+L+1] + F[i-(L+1)] + F[i+1] + F[i-1] - 4F[i] = d^2 * P[i]
+//    ...where this eqn holds for the interior points: j = 1,2,...,J and l = 1,2,...,L
+//
+//On the boundries F should be specified, i.e. where:
+//    j = 0    or    i = 0, 1, 2, ..,L
+//    j = J    or    i = J(L+1), J(L+1)+1, J(L+1)+2, ...,J(L+1)+L
+//    l = 0    or    i = 0, (L+1), 2(L+1), ..., J(L+1)
+//    l = L    or    i = L, (L+1)+L, 2(L+1)+L, ..., J(L+1)+L
+PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
+	
+	char log_message[256];
+	ps_log("PsiShooter -- a shooting method solver for the time independant Schrodinger equation under the effective mass approximation.\n");
+	
+    // This is a linked list for storing solutions
+	PS_LIST solution_list = ps_list_create();
+	
+    ps_log("Iterate through Energy Eigenvalues to find the lowest bound state.\n");      
+	
+	// wavefunction storage.  
+	int Nx = potential->xsize; // used for generating strings with sprintf for sending to ps_log
+	int Ny = potential->ysize; // used for generating strings with sprintf for sending to ps_log
+	
+	//	double dx = potential->xstep; //cm, size of differential length 
+	//(TODO: Compute this inside loop in order to support meshes with non-uniform differential steps)
+	double dx = ps_data_dx_at(potential, 2); 
+	double dy = ps_data_dy_at(potential, 2); // 0 to 1 is wierd, maybe. 
+	
+	double F[Nx][Ny]; //the envelope function (wavefunction)
+	double f_cache[params->n_iter]; // We cache the last value of the envelope for each solution
+	double G[Nx][Ny]; //the aux function
+	
+	//F
+	//intial eqn                 -->  Div*F = G/M	
+	//convert to finite diff eqn -->  (F[x+dx,y]-F[x,y])/dx + (F[x,y+dy]-F[x,y])/dy = G[x,y]/M[x,y]	
+	//rearrange                  -->  F[x+dx,y]-F[x,y] + dx*(F[x,y+dy]-F[x,y])/dy = dx*G[x,y]/M[x,y]	
+	
+	//convert to c style         -->  F[x+1,y] 
+	
+	//convert to 1D              -->  (F[x+dx]-F[x-dx])/(2dx) = G[x]/M[x]	
+	//rearrange                  -->  F[x+dx] = (2dx)*G[x]/M[x] + F[x-dx]
+	//convert to c style         -->  F[i+1] = (2dx)*G[i]*m[i] + F[i-1]
+	//                                F[i+1] = F_coeff*G[i]*m[i] + F[i-1]
+	double F_coeff = dx; //handy prefactor that would otherwise be for every point evaluated
+	//from dx to 2*dx jh sometime in may
+	
+	
+	//G
+	//intial eqn                 -->  Div*G = F * 2*(V-E)/h_bar^2
+	//convert to finite diff eqn -->  (G[x+dx,y]-G[x-dx,y])/(2dx) + (G[x,y+dy]-G[x,y-dy])/(2dy) = F[x,y]*2*(V[x,y]-E[x,y])/h_bar^2
+	//convert to 1D              -->  G[x+dx]-G[x-dx]/(2dx) = F[x]*2*(V[x]-E)/h_bar^2	
+	//rearrange                  -->  G[x+dx] = (2dx)*F[x]*2*(V[x]-E)/h_bar^2 + G[x-dx]
+	//convert to c style         -->  G[i+1] = 4*dx/hbar^2 * F[i]*(V[i]-E) + G[i-1]
+	//                                G[i+1] = G_coeff * F[i]*(V[i]-E) + G[i-1]
+	double G_coeff = 2*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
+	//from 4*dx to 2*dx jh sometime in may
+    
+	int bound_state_count = 0;	
+    int threshold_set_flag = 0; 
+    double F_threshold = 0;
+	int i, iter;
+	double E = params->energy_min;
+	double Estep = (params->energy_max - params->energy_min)/(params->n_iter); 
+	double V; //meV, Current potential
+	double m_eff = MASS_ELECTRON*M_EFF_GAAS;// To Do: make the electron mass be part of the structure that we are simulating. i.e. in general it can be a position dependant quantity just like the potential (think heterostructures with different band edge curvatures)
+			/*
+	for (iter = 0; iter < params->n_iter; iter++) {
+
+		//initial conditions
+        F[0] = 0;
+        G[0] = 1;
+		F[1] = 0;
+        G[1] = 1;
+        
+		for(i=1; i<N-1; i++) {
+			V = ps_data_value(potential, 0,i); //V[i]
+			F[i+1] = F_coeff * G[i] * m_eff + F[i]; //subbed in m_eff for m[i], To Do: support a position dependant mass by storing different masses at different locations (add to the PS_DATA structure probably)			
+			G[i+1] = G_coeff * F[i] * (V-E) + G[i];
+        }
+		f_cache[iter] = F[N-1];
+		
+		
+		// Consider removing this for speed
+        sprintf(log_message, "\tE=%g eV\tF[N-1]=%g\n", E/EV_TO_ERGS, F[N-1]);
+		
+		ps_log(log_message);
+		
+		//Try to detect which solutions are eigen states (bound states)
+        if((iter > 0) && ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0))) { //if there was a change in sign between the last point of the prev and current envelope function then there was a zero crossing and there a solution
+			// test for a sign crossing
+			
+			PS_DATA wavefunction = ps_data_copy(potential); // copy the potential
+			ps_data_set_data(wavefunction, F); // Overwrite the potential with the wavefunction
+			
+			PS_SOLUTION *solution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
+			solution->energy = E;
+			solution->wavefunction = wavefunction;
+			
+			// Add the solution to the list of bound states
+			ps_list_add(solution_list, solution);
+			
+			// print a log message
+            sprintf(log_message, "\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[N], F_threshold);
+			ps_log(log_message);
+        }
+		
+		// Increment the energy
+		E += Estep;
+    }    	
+	
+		 */
+	return solution_list;
+}
+
+
+//
 // Generates a test potential. Not really a permenant feature, but rather its 
 // something I intend to use in order to do some useful solver engine work 
 // while the generation of potentials from files/user input is up in air.
@@ -454,4 +586,3 @@ int main(int argc, char **argv) {
 		
 	return PS_OK;
 }
-

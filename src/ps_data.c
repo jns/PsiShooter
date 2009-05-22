@@ -145,3 +145,11 @@ double ps_data_dx_at(PS_DATA data, int x) {
 		return data->x_values[1] - data->x_values[0];
 	}
 }
+
+double ps_data_dy_at(PS_DATA data, int y) {
+	if (0 < y) {
+		return data->y_values[y] - data->y_values[y-1];
+	} else {
+		return data->y_values[1] - data->y_values[0];
+	}
+}
