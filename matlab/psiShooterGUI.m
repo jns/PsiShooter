@@ -208,6 +208,8 @@ switch loadMenu_index
         potential.x = x;
         potential.y = 0;
         potential.data = eval(potentialFunction);
+        data = potential(1);
+        data.data = data.data*1.60217646e-12;
         
         currSysMessText =[{['Load Function: ' potentialFunction ...
             ' from x=' num2str(min(potential.x)) ' to ' ...
@@ -233,7 +235,8 @@ switch loadMenu_index
         
         vPath = 'potentialFromFunction';
         
-        writeFile(potential.x,potential.y,potential.data,vPath);
+        %write the function defined potential to a file scaled into ergs.
+        writeFile(potential.x,potential.y,1.60217646e-12*potential.data,vPath);
     case 4
         currSysMessText =[{'Load Default Potential'};currSysMessText];
         set(handles.systemMessages, 'String', currSysMessText);
@@ -288,7 +291,7 @@ function simulateButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %Precede the shell command with ! to execute.
-global data psi vPath binPath;
+global data psi energies vPath binPath;
 
 simulateMenu_index = get(handles.simulateMenu, 'Value');
 currSysMessText = get(handles.systemMessages, 'String');
@@ -324,16 +327,16 @@ if unixOS
     end
     if ~isempty(messages)
         if length(messages) > 1000
-            currSysMessText = [currSysMessText;...
-                {'---PSISHOOTER BINARY MESSAGES---'};...
+            currSysMessText = [{'---PSISHOOTER BINARY MESSAGES---'};...
                 {'Messages too long. Contents clipped.'};...
                 {messages(end-256:end)}; ...
-            {'---PSISHOOTER BINARY MESSAGES---'}];
-        else
-        currSysMessText = [currSysMessText;...
             {'---PSISHOOTER BINARY MESSAGES---'};...
+            currSysMessText];
+        else
+        currSysMessText = [{'---PSISHOOTER BINARY MESSAGES---'};...
             {messages}; ...
-            {'---PSISHOOTER BINARY MESSAGES---'}];
+            {'---PSISHOOTER BINARY MESSAGES---'};...
+            currSysMessText];
         end
     end
 else
@@ -373,7 +376,7 @@ try
                     {zeros(1,length(psi(1).y))},{'black'},{0}];
             else
                 solInput = [{data(1).y},...
-                    {length(data(1).data)},{'black'},{0}];
+                    {data(1).data/1.60217646e-12},{'black'},{0}];
             end
             for index = 1:length(psi)
                 if index == 1%Set the colors for each fucntion.
