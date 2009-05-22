@@ -288,7 +288,7 @@ function simulateButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %Precede the shell command with ! to execute.
-global vPath binPath;
+global data psi vPath binPath;
 
 simulateMenu_index = get(handles.simulateMenu, 'Value');
 currSysMessText = get(handles.systemMessages, 'String');
@@ -324,10 +324,15 @@ if unixOS
     end
     if ~isempty(messages)
         if length(messages) > 1000
-            currSysMessText = [{'---PSISHOOTER BINARY MESSAGES---'};{messages(end-256:end)}; ...
+            currSysMessText = [currSysMessText;...
+                {'---PSISHOOTER BINARY MESSAGES---'};...
+                {'Messages too long. Contents clipped.'};...
+                {messages(end-256:end)}; ...
             {'---PSISHOOTER BINARY MESSAGES---'}];
         else
-        currSysMessText = [{'---PSISHOOTER BINARY MESSAGES---'};{messages}; ...
+        currSysMessText = [currSysMessText;...
+            {'---PSISHOOTER BINARY MESSAGES---'};...
+            {messages}; ...
             {'---PSISHOOTER BINARY MESSAGES---'}];
         end
     end
@@ -335,6 +340,107 @@ else
     msgbox(['Your operating system is not yet fully supported. ' ...
         'Please edit psiShooterGUI.m to add support']);
 end
+set(handles.systemMessages, 'String',currSysMessText);
+
+%Assuming that these are in the present working directory
+[psi,messages] = loadData('BS.dat');
+currSysMessText =[messages;currSysMessText];
+
+[energies,messages] = loadEnergies('E.txt');
+currSysMessText =[messages;currSysMessText];
+if isempty(energies)
+    energies(1:length(psi)) = [1:length(psi)];
+end
+if length(energies) ~= length(psi)
+    currSysMessText =[{'Different number of bound states'}; ...
+        {'found than solutions found in file'};currSysMessText];
+end
+set(handles.systemMessages, 'String', currSysMessText);
+
+try
+    cla;%clear the plot window
+    if isempty(psi(1).x)
+        return
+    elseif or(length(psi(1).x)==1,length(psi(1).y)==1)
+        if length(psi(1).x) == 1 
+            %checking to see if the length of the potential data is larget
+            %than the length of the solution data is a cheap hack to see if
+            %the data structure  is 2d or not. There are better ways of
+            %doing this, but it is late, and I'd rather write a long
+            %comment than correct what I just wrote.
+            if isempty(data) || length(data(1).data) > length(psi(1).data)
+                solInput = [{psi(1).y},...
+                    {zeros(1,length(psi(1).y))},{'black'},{0}];
+            else
+                solInput = [{data(1).y},...
+                    {length(data(1).data)},{'black'},{0}];
+            end
+            for index = 1:length(psi)
+                if index == 1%Set the colors for each fucntion.
+                    %This should be done with a function, but here's a
+                    %quick soltion.
+                    color = 'red';
+                elseif index == 2
+                    color = 'green';
+                elseif index == 3
+                    color = 'blue';
+                else
+                    color = 'randomize';
+                end
+                solInput = [solInput,{psi(index).y}, ...
+                    {psi(index).data},{color},{energies(index)}];
+            end
+        else
+            if isempty(data) || length(data(1).data) > length(psi(1).data)
+                solInput = [{psi(1).x},...
+                    {zeros(1,length(psi(1).x))},{'black'},{0}];
+            else
+                solInput = [{data(1).x},...
+                    {data(1).data/1.60217646e-12},{'black'},{0}];
+            end
+            for index = 1:length(psi)
+                if index == 1%Set the colors for each fucntion.
+                    %This should be done with a function, but here's a
+                    %quick soltion.
+                    color = 'red';
+                elseif index == 2
+                    color = 'green';
+                elseif index == 3
+                    color = 'blue';
+                else
+                    color = 'randomize';
+                end
+                solInput = [solInput,{psi(index).x}, ...
+                    {psi(index).data},{color},{energies(index)}];
+            end
+        end
+        visualize1D(solInput);
+        set(handles.rotateEnable,'Enable','off');
+    elseif and(length(psi.x)>1,length(psi.y)>1)
+        if isempty(data)
+            solInput = [{psi(1).x},{psi(1).y},...
+                {zeros(length(psi(1).x),length(psi(1).y))},{0}];
+        else
+            solInput = [{data(1).x},{data(1).y},...
+                {data(1).data},{0}];
+        end
+        for index = 1:length(psi)
+            solInput = [solInput,{psi(index).x},{psi(index).y}, ...
+                {psi(index).data},{energies(index)}];
+        end
+        visualize2D(solInput)
+        set(handles.rotateEnable,'Enable','on');
+    end
+    %Enable the plot control toggle buttons
+    set(handles.panEnable,'Enable','on');
+    set(handles.zoomEnable,'Enable','on');
+catch
+    
+    currSysMessText =['Solutions failed to plot';currSysMessText];
+
+    set(handles.systemMessages,'String',currSysMessText);
+end
+
 
 %%
 
@@ -410,7 +516,7 @@ parseSpaces = find(filterString == ' ');
 if ~isempty(parseCommas)
     plotIndices = str2num(filterString(:,parseCommas(1)-1));
     for parseIndex = 1:length(parseCommas)
-        if length(parseCommas) > parseIndex+1
+        if length(parseCommas) > parseIndex
             plotIndices(parseIndex+1) = str2num(filterString(...
                 parseCommas(parseIndex):parseCommas(parseIndex+1)));
         else
@@ -419,13 +525,13 @@ if ~isempty(parseCommas)
         end
     end
 elseif ~isempty(parseDashes)
-    startValue = str2num(filterString(parseDashes(1)-1));
-    endValue = str2num(filterString(parseDashes(1)+1));
+    startValue = str2num(filterString(1:parseDashes(1)-1));
+    endValue = str2num(filterString(parseDashes(1)+1:end));
     plotIndices = startValue:endValue;
 elseif ~isempty(parseSpaces)
     plotIndices = str2num(filterString(:,parseSpaces(1)-1));
     for parseIndex = 1:length(parseSpaces)
-        if length(parseSpaces) > (parseIndex+1)
+        if length(parseSpaces) > parseIndex
             plotIndices(parseIndex+1) = str2num(filterString(...
                 parseSpaces(parseIndex):parseSpaces(parseIndex+1)));
         else
@@ -433,8 +539,9 @@ elseif ~isempty(parseSpaces)
                 parseSpaces(parseIndex):end));
         end
     end
+else
+    plotIndices = 1:length(psi);
 end
-
 
 cla;%clear the plot window
 if isempty(psi(1).x)
