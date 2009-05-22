@@ -206,7 +206,8 @@ switch loadMenu_index
         seperationIndex = find(input==' ');
         x = str2num(input(seperationIndex:end));
         potentialFunction = input(1:seperationIndex);
-        potential.x = x;
+        %Scale into cm
+        potential.x = x*1e2;
         potential.y = 0;
         potential.data = eval(potentialFunction);
         data = potential(1);
@@ -236,7 +237,7 @@ switch loadMenu_index
         
         vPath = 'potentialFromFunction';
         
-        %write the function defined potential to a file scaled into ergs.
+        %write the function defined potential to a file scaled into cm and ergs.
         writeFile(potential.x,potential.y,1.60217646e-12*potential.data,vPath);
     case 4
         currSysMessText =[{'Load Default Potential'};currSysMessText];
@@ -348,7 +349,7 @@ set(handles.systemMessages, 'String',currSysMessText);
 
 %messages(end-42:end-40) should be the place where the binary the number of
 %solutions it found. If it found 
-if str2num(messages(end-42:end-40)) == 0
+if str2num(messages(end-43:end-40)) == 0
     currSysMessText = [{'NO SOLUTIONS FOUND'};currSysMessText];
     set(handles.systemMessages, 'String',currSysMessText);
     return
@@ -951,14 +952,15 @@ end
 
 legendText = [];
 for n = 1:1:narginC/4
+    %X axis multiplied by 1e7 to convert from cm to nm in display.
     if strcmp(color{n},'randomize')
-        plot(X(:,n),Y(:,n)+offset{n},'Color',[rand(1),rand(1),rand(1)]);
+        plot(X(:,n)*1e7,Y(:,n)+offset{n},'Color',[rand(1),rand(1),rand(1)]);
         legendText = [legendText;{['#' num2str(n) ' ' ...
             num2str(offset{n}) ' eV']}];
     elseif strcmp(color{n},'black')
-        plot(X(:,n),Y(:,n)+offset{n},color{n})
+        plot(X(:,n)*1e7,Y(:,n)+offset{n},color{n})
     else
-        plot(X(:,n),Y(:,n)+offset{n},color{n})
+        plot(X(:,n)*1e7,Y(:,n)+offset{n},color{n})
         legendText = [legendText;{['#' num2str(n) ' ' ...
             num2str(offset{n}) ' eV']}];
     end
