@@ -798,7 +798,8 @@ for n = 1:4:narginC
     Y(:,ceil(n/4)) = vararginC{n+1};
     if n > 1
         %Normalize the 1D plot values the Y values
-        Y(:,ceil(n/4)) = Y(:,ceil(n/4))/max(Y(1:ceil(length(Y(:,ceil(n/4)))),ceil(n/4)));
+        Y(:,ceil(n/4)) = (max(Y(:,1))-min(Y(:,1))) * (2e-7) * Y(:,ceil(n/4)).^2 /...
+            (sum(Y(:,ceil(n/4)).^2) *(X(2)-X(1)));
     end
     color{ceil(n/4)} = vararginC{n+2};
     offset{ceil(n/4)} = vararginC{n+3};
@@ -808,17 +809,17 @@ legendText = [];
 for n = 1:1:narginC/4
     if strcmp(color{n},'randomize')
         plot(X(:,n),Y(:,n)+offset{n},'Color',[rand(1),rand(1),rand(1)]);
-        legendText = [legendText;[{'#'} num2str(n) {' '} ...
-            {num2str(offset{n})} {' eV'}]];
+        legendText = [legendText;{['#' num2str(n) ' ' ...
+            num2str(offset{n}) ' eV']}];
     elseif strcmp(color{n},'black')
         plot(X(:,n),Y(:,n)+offset{n},color{n})
     else
         plot(X(:,n),Y(:,n)+offset{n},color{n})
-        legendText = [legendText;[{'#'} num2str(n) {' '} ...
-            {num2str(offset{n})} {' eV'}]];
+        legendText = [legendText;{['#' num2str(n) ' ' ...
+            num2str(offset{n}) ' eV']}];
     end
     if n == 1
-        legendText = {'Potential Structure'};
+        legendText = {'Potential'};
     end
     hold on;
 end
