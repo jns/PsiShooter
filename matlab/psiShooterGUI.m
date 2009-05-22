@@ -62,6 +62,7 @@ data = [];
 psi = [];
 vPath = [];
 binPath = [];
+energies = [];
 
 % Choose default command line output for psiShooterGUI
 handles.output = hObject;
@@ -345,6 +346,13 @@ else
 end
 set(handles.systemMessages, 'String',currSysMessText);
 
+%messages(end-42:end-40) should be the place where the binary the number of
+%solutions it found. If it found 
+if str2num(messages(end-42:end-40)) == 0
+    currSysMessText = [{'NO SOLUTIONS FOUND'};currSysMessText];
+    set(handles.systemMessages, 'String',currSysMessText);
+    return
+end
 %Assuming that these are in the present working directory
 [psi,messages] = loadData('BS.dat');
 currSysMessText =[messages;currSysMessText];
@@ -486,6 +494,8 @@ function systemMessages_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of systemMessages as text
 %        str2double(get(hObject,'String')) returns contents of
 %        systemMessages as a double
+
+'Arbitrary Breakpoint';
 
 
 % --- Executes during object creation, after setting all properties.
