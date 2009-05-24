@@ -327,10 +327,11 @@ if unixOS
         end
         
         if length(data(1).y) < 2 || length(data.x) < 2
-            [status,messages] = unix([binPath ' ' vPath]);
+            [status,binaryMessages] = unix([binPath ' ' vPath]);
         else
-            [status,messages] = unix([binPath ' ' vPath ' 2D']);
+            [status,binaryMessages] = unix([binPath ' ' vPath ' 2D']);
         end
+        messages = binaryMessages;
     end
     if ~isempty(messages)
         if length(messages) > 1000
