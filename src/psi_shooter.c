@@ -142,7 +142,7 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
     // This is a linked list for storing solutions
 	PS_LIST solution_list = ps_list_create();
 
-    ps_log("Iterate through Energy Eigenvalues to find the lowest bound state.\n");      
+	ps_log("Iterate through Energy Eigenvalues to find the lowest bound state.\n");      
 	
 
 	// wavefunction storage.  
@@ -176,8 +176,8 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//from 4*dx to 2*dx jh sometime in may
     
 	int bound_state_count = 0;	
-    int threshold_set_flag = 0; 
-    double F_threshold = 0;
+	int threshold_set_flag = 0; 
+	double F_threshold = 0;
 	int i, iter;
 	double E = params->energy_min;
 	double Estep = (params->energy_max - params->energy_min)/(params->n_iter); 
@@ -186,45 +186,59 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 		
 	for (iter = 0; iter < params->n_iter; iter++) {
 		
-		//initial conditions
-        F[0] = 0;
-        G[0] = 1;
-		F[1] = 0;
-        G[1] = 1;
+	  //initial conditions
+	  F[0] = 0;
+	  G[0] = 1;
+	  F[1] = 0;
+	  G[1] = 1;
         
-		for(i=1; i<N-1; i++) {
-			V = ps_data_value(potential, 0,i); //V[i]
-			F[i+1] = F_coeff * G[i] * m_eff + F[i]; //subbed in m_eff for m[i], To Do: support a position dependant mass by storing different masses at different locations (add to the PS_DATA structure probably)			
-			G[i+1] = G_coeff * F[i] * (V-E) + G[i];
-        }
-		f_cache[iter] = F[N-1];
+	  for(i=1; i<N-1; i++) {
+	    V = ps_data_value(potential, 0,i); //V[i]
+	    //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
+	    //Makes the upper solutions stable and oscillation free.
+	    if (i%2==1){
+	      F[i+1] = F_coeff * G[i] * m_eff + F[i]; 
+	      //subbed in m_eff for m[i], To Do: support a position dependant
+	      // mass by storing different masses at different locations (add to the PS_DATA structure probably)
+	      G[i+1] = G_coeff * F[i] * (V-E) + G[i];
+	    }
+	    if (i%2==0){
+	      F[i+1] = 2*F_coeff * G[i] * m_eff + F[i-1]; 
+	      //subbed in m_eff for m[i], To Do: support a position dependant
+	      // mass by storing different masses at different locations (add to the PS_DATA structure probably)
+	      G[i+1] = 2*G_coeff * F[i] * (V-E) + G[i-1];
+	    }
+	  }
+	  f_cache[iter] = F[N-1];
 		
-		// Consider removing this for speed
-		//         sprintf(log_message, "\tE=%g eV\tF[N-1]=%g\n", E/EV_TO_ERGS, F[N-1]);
-		// ps_log(log_message);
+	  // Consider removing this for speed
+	  //         sprintf(log_message, "\tE=%g eV\tF[N-1]=%g\n", E/EV_TO_ERGS, F[N-1]);
+	  // ps_log(log_message);
 		
-		//Try to detect which solutions are eigen states (bound states)
-        if((iter > 0) && ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0))) { //if there was a change in sign between the last point of the prev and current envelope function then there was a zero crossing and there a solution
-		// test for a sign crossing
+	  //Try to detect which solutions are eigen states (bound states)
+	  if((iter > 0) && ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0))) { 
+	    //if there was a change in sign between the last point of the prev
+	    // and current envelope function then there was a zero crossing and there a solution
+	    // test for a sign crossing
 
-			PS_DATA wavefunction = ps_data_copy(potential); // copy the potential
-			ps_data_set_data(wavefunction, F); // Overwrite the potential with the wavefunction
+	    PS_DATA wavefunction = ps_data_copy(potential); // copy the potential
+	    ps_data_set_data(wavefunction, F); // Overwrite the potential with the wavefunction
 			
-			PS_SOLUTION *solution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
-			solution->energy = E;
-			solution->wavefunction = wavefunction;
+	    PS_SOLUTION *solution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
+	    solution->energy = E;
+	    solution->wavefunction = wavefunction;
 			
-			// Add the solution to the list of bound states
-			ps_list_add(solution_list, solution);
+	    // Add the solution to the list of bound states
+	    ps_list_add(solution_list, solution);
 
-			// print a log message
+	    // print a log message
             sprintf(log_message, "\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[N], F_threshold);
-			ps_log(log_message);
-        }
+	    ps_log(log_message);
+	  }
 
-		// Increment the energy
-		E += Estep;
-    }    	
+	  // Increment the energy
+	  E += Estep;
+	}    	
 	
 	return solution_list;
 }
@@ -284,6 +298,8 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//rearrange                  -->  F[x+dx,y]-F[x,y] + dx*(F[x,y+dy]-F[x,y])/dy = dx*G[x,y]/M[x,y]	
 	
 	//convert to c style         -->  F[x+1,y] 
+
+	//in 2D                      -->  F[i+1][j]-F[i][j] =F_coeff*G[i][j]*m[i][j] - F[i][j+1] + F[i][j-1]
 	
 	//convert to 1D              -->  (F[x+dx]-F[x-dx])/(2dx) = G[x]/M[x]	
 	//rearrange                  -->  F[x+dx] = (2dx)*G[x]/M[x] + F[x-dx]
@@ -296,67 +312,85 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//G
 	//intial eqn                 -->  Div*G = F * 2*(V-E)/h_bar^2
 	//convert to finite diff eqn -->  (G[x+dx,y]-G[x-dx,y])/(2dx) + (G[x,y+dy]-G[x,y-dy])/(2dy) = F[x,y]*2*(V[x,y]-E[x,y])/h_bar^2
+	//in 2d:                     -->  G[x+dx,y] = (2dx)*F[x,y]*2*(V[x,y]-e[x,y])/h_bar^2+G[x-dx][y]-(G[x,y+dy]-G[x,y-dy])
+	//                           -->  G[i+1][j] = G_coeff * f[i][j]*(V[i][j]-E) + G[i-1][j] - G[i][j+1]-G[i][j-1]
+	//
+
 	//convert to 1D              -->  G[x+dx]-G[x-dx]/(2dx) = F[x]*2*(V[x]-E)/h_bar^2	
 	//rearrange                  -->  G[x+dx] = (2dx)*F[x]*2*(V[x]-E)/h_bar^2 + G[x-dx]
 	//convert to c style         -->  G[i+1] = 4*dx/hbar^2 * F[i]*(V[i]-E) + G[i-1]
 	//                                G[i+1] = G_coeff * F[i]*(V[i]-E) + G[i-1]
 	double G_coeff = 2*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
 	//from 4*dx to 2*dx jh sometime in may
-    
+
 	int bound_state_count = 0;	
-    int threshold_set_flag = 0; 
-    double F_threshold = 0;
+	int threshold_set_flag = 0; 
+	double F_threshold = 0;
 	int i, iter;
 	double E = params->energy_min;
 	double Estep = (params->energy_max - params->energy_min)/(params->n_iter); 
 	double V; //meV, Current potential
-	double m_eff = MASS_ELECTRON*M_EFF_GAAS;// To Do: make the electron mass be part of the structure that we are simulating. i.e. in general it can be a position dependant quantity just like the potential (think heterostructures with different band edge curvatures)
-			/*
+	double m_eff = MASS_ELECTRON*M_EFF_GAAS;
+	// To Do: make the electron mass be part of the structure that we are simulating. i.e. 
+	//in general it can be a position dependant quantity just like the potential 
+	//(think heterostructures with different band edge curvatures)
+		
 	for (iter = 0; iter < params->n_iter; iter++) {
-
-		//initial conditions
-        F[0] = 0;
-        G[0] = 1;
-		F[1] = 0;
-        G[1] = 1;
+		
+	  //initial conditions
+	  F[0] = 0;
+	  G[0] = 1;
+	  F[1] = 0;
+	  G[1] = 1;
         
-		for(i=1; i<N-1; i++) {
-			V = ps_data_value(potential, 0,i); //V[i]
-			F[i+1] = F_coeff * G[i] * m_eff + F[i]; //subbed in m_eff for m[i], To Do: support a position dependant mass by storing different masses at different locations (add to the PS_DATA structure probably)			
-			G[i+1] = G_coeff * F[i] * (V-E) + G[i];
-        }
-		f_cache[iter] = F[N-1];
+	  for(i=1; i<N-1; i++) {
+	    V = ps_data_value(potential, 0,i); //V[i]
+	    //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
+	    //Makes the upper solutions stable and oscillation free.
+	    if (i%2==1){
+	      F[i+1] = F_coeff * G[i] * m_eff + F[i]; 
+	      //subbed in m_eff for m[i], To Do: support a position dependant
+	      // mass by storing different masses at different locations (add to the PS_DATA structure probably)
+	      G[i+1] = G_coeff * F[i] * (V-E) + G[i];
+	    }
+	    if (i%2==0){
+	      F[i+1] = 2*F_coeff * G[i] * m_eff + F[i-1]; 
+	      //subbed in m_eff for m[i], To Do: support a position dependant
+	      // mass by storing different masses at different locations (add to the PS_DATA structure probably)
+	      G[i+1] = 2*G_coeff * F[i] * (V-E) + G[i-1];
+	    }
+	  }
+	  f_cache[iter] = F[N-1];
 		
+	  // Consider removing this for speed
+	  //         sprintf(log_message, "\tE=%g eV\tF[N-1]=%g\n", E/EV_TO_ERGS, F[N-1]);
+	  // ps_log(log_message);
 		
-		// Consider removing this for speed
-        sprintf(log_message, "\tE=%g eV\tF[N-1]=%g\n", E/EV_TO_ERGS, F[N-1]);
-		
-		ps_log(log_message);
-		
-		//Try to detect which solutions are eigen states (bound states)
-        if((iter > 0) && ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0))) { //if there was a change in sign between the last point of the prev and current envelope function then there was a zero crossing and there a solution
-			// test for a sign crossing
+	  //Try to detect which solutions are eigen states (bound states)
+	  if((iter > 0) && ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0))) { 
+	    //if there was a change in sign between the last point of the prev
+	    // and current envelope function then there was a zero crossing and there a solution
+	    // test for a sign crossing
+
+	    PS_DATA wavefunction = ps_data_copy(potential); // copy the potential
+	    ps_data_set_data(wavefunction, F); // Overwrite the potential with the wavefunction
 			
-			PS_DATA wavefunction = ps_data_copy(potential); // copy the potential
-			ps_data_set_data(wavefunction, F); // Overwrite the potential with the wavefunction
+	    PS_SOLUTION *solution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
+	    solution->energy = E;
+	    solution->wavefunction = wavefunction;
 			
-			PS_SOLUTION *solution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
-			solution->energy = E;
-			solution->wavefunction = wavefunction;
-			
-			// Add the solution to the list of bound states
-			ps_list_add(solution_list, solution);
-			
-			// print a log message
+	    // Add the solution to the list of bound states
+	    ps_list_add(solution_list, solution);
+
+	    // print a log message
             sprintf(log_message, "\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[N], F_threshold);
-			ps_log(log_message);
-        }
-		
-		// Increment the energy
-		E += Estep;
-    }    	
+	    ps_log(log_message);
+	  }
+
+	  // Increment the energy
+	  E += Estep;
+	}    	
 	
-		 */
 	return solution_list;
 }
 
