@@ -186,12 +186,12 @@ switch loadMenu_index
             return
         elseif or(length(potential.x) == 1,length(potential.y)==1)
             if length(potential.x) == 1
-                visualize1D(potential.y,potential.data,'red',0);
+                visualize1D(potential.y,potential.data/1.60217646e-12,'red',0);
             else
-                visualize1D(potential.x,potential.data,'red',0);
+                visualize1D(potential.x,potential.data/1.60217646e-12,'red',0);
             end
         elseif and(length(potential.x)>1,length(potential.y)>1)
-            visualize2D(potential.x,potential.y,potential.data,0)
+            visualize2D(potential.x,potential.y,potential.data/1.60217646e-12,0)
         end
         %Enable the plot control toggle buttons
         set(handles.rotateEnable,'Enable','on');
@@ -325,7 +325,12 @@ if unixOS
             end
             binPath = [path name];
         end
-        [status,messages] = unix([binPath ' ' vPath]);
+        
+        if length(data(1).y) < 2 || length(data.x) < 2
+            [status,messages] = unix([binPath ' ' vPath]);
+        else
+            [status,messages] = unix([binPath ' ' vPath ' 2D']);
+        end
     end
     if ~isempty(messages)
         if length(messages) > 1000
@@ -434,7 +439,7 @@ try
                 {zeros(length(psi(1).x),length(psi(1).y))},{0}];
         else
             solInput = [{data(1).x},{data(1).y},...
-                {data(1).data},{0}];
+                {data(1).data/1.60217646e-12},{0}];
         end
         for index = 1:length(psi)
             solInput = [solInput,{psi(index).x},{psi(index).y}, ...
@@ -1013,15 +1018,15 @@ end
 
 for n = 1:4:narginC
     if n == 1 %plot styles set up for the potential (more transparent)
-        h(1)=surf(vararginC{n},vararginC{n+1},vararginC{n+2});
+        h(1)=surf(vararginC{n}*1e7,vararginC{n+1}*1e7,vararginC{n+2});
         set(h(1),'facealpha',0.35);
-        set(h(1),'edgealpha',0.01);
+        set(h(1),'edgealpha',0.05);
         hold on;
     else %plot styles set up for wavefunctions
         %h(n) is the handle for the graphic objects I am creating. They can
         %be accessed by get or set(h(n)) with whatever property you want to
         %mess with.
-        h(n)=surf(vararginC{n},vararginC{n+1},vararginC{n+2}+vararginC{n+3});
+        h(n)=surf(vararginC{n}*1e7,vararginC{n+1}*1e7,vararginC{n+2}+vararginC{n+3});
         set(h(n),'facealpha',0.7);
         set(h(n),'edgealpha',0.1);
     end

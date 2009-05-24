@@ -288,9 +288,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	double dx = ps_data_dx_at(potential, 2); 
 	double dy = ps_data_dy_at(potential, 2); // 0 to 1 is wierd, maybe. 
 	
-	double F[Nx][Ny]; //the envelope function (wavefunction)
-	double f_cache[params->n_iter]; // We cache the last value of the envelope for each solution
-	double G[Nx][Ny]; //the aux function
+
 	
 	//F
 	//intial eqn                 -->  Div*F = G/M	
@@ -299,7 +297,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	
 	//convert to c style         -->  F[x+1,y] 
 
-	//in 2D                      -->  F[i+1][j]-F[i][j] =F_coeff*G[i][j]*m[i][j] - F[i][j+1] + F[i][j-1]
+	//in 2D                      -->  F[i+1][j] =F_coeff*G[i][j]*m[i][j] + F[i-1][j] - F[i][j+1] + F[i][j-1]
 	
 	//convert to 1D              -->  (F[x+dx]-F[x-dx])/(2dx) = G[x]/M[x]	
 	//rearrange                  -->  F[x+dx] = (2dx)*G[x]/M[x] + F[x-dx]
@@ -308,12 +306,11 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	double F_coeff = dx; //handy prefactor that would otherwise be for every point evaluated
 	//from dx to 2*dx jh sometime in may
 	
-	
 	//G
 	//intial eqn                 -->  Div*G = F * 2*(V-E)/h_bar^2
 	//convert to finite diff eqn -->  (G[x+dx,y]-G[x-dx,y])/(2dx) + (G[x,y+dy]-G[x,y-dy])/(2dy) = F[x,y]*2*(V[x,y]-E[x,y])/h_bar^2
 	//in 2d:                     -->  G[x+dx,y] = (2dx)*F[x,y]*2*(V[x,y]-e[x,y])/h_bar^2+G[x-dx][y]-(G[x,y+dy]-G[x,y-dy])
-	//                           -->  G[i+1][j] = G_coeff * f[i][j]*(V[i][j]-E) + G[i-1][j] - G[i][j+1]-G[i][j-1]
+	//                           -->  G[i+1][j] = G_coeff * f[i][j]*(V[i][j]-E) + G[i-1][j] - G[i][j+1] + G[i][j-1]
 	//
 
 	//convert to 1D              -->  G[x+dx]-G[x-dx]/(2dx) = F[x]*2*(V[x]-E)/h_bar^2	
@@ -322,11 +319,14 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//                                G[i+1] = G_coeff * F[i]*(V[i]-E) + G[i-1]
 	double G_coeff = 2*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
 	//from 4*dx to 2*dx jh sometime in may
-
+	//dx = dy here.
+	double F[Nx][Ny]; //the envelope function (wavefunction)
+	double f_cache[params->n_iter]; // We cache the last value of the envelope for each solution
+	double G[Nx][Ny]; //the aux function
 	int bound_state_count = 0;	
 	int threshold_set_flag = 0; 
 	double F_threshold = 0;
-	int i, iter;
+	int i, j, iter;
 	double E = params->energy_min;
 	double Estep = (params->energy_max - params->energy_min)/(params->n_iter); 
 	double V; //meV, Current potential
@@ -338,36 +338,55 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	for (iter = 0; iter < params->n_iter; iter++) {
 		
 	  //initial conditions
-	  F[0] = 0;
-	  G[0] = 1;
-	  F[1] = 0;
-	  G[1] = 1;
+	  for (j=1; j<Ny; j++){
+	    F[0][j] = 0;
+	    G[0][j] = 1;
+	    F[1][j] = 0;
+	    G[1][j] = 1;
+	  }
         
-	  for(i=1; i<N-1; i++) {
-	    V = ps_data_value(potential, 0,i); //V[i]
-	    //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
-	    //Makes the upper solutions stable and oscillation free.
-	    if (i%2==1){
-	      F[i+1] = F_coeff * G[i] * m_eff + F[i]; 
-	      //subbed in m_eff for m[i], To Do: support a position dependant
-	      // mass by storing different masses at different locations (add to the PS_DATA structure probably)
-	      G[i+1] = G_coeff * F[i] * (V-E) + G[i];
-	    }
-	    if (i%2==0){
-	      F[i+1] = 2*F_coeff * G[i] * m_eff + F[i-1]; 
-	      //subbed in m_eff for m[i], To Do: support a position dependant
-	      // mass by storing different masses at different locations (add to the PS_DATA structure probably)
-	      G[i+1] = 2*G_coeff * F[i] * (V-E) + G[i-1];
+	  for(i=1; i<Nx-1; i++) {
+	    for(j=1; j<Ny-1; j++) {
+	      V = ps_data_value(potential, i,j); //V[i][j]
+	      //Make a change so we don't need to know the future:
+	      //F[i+1][j] = F_coeff*G[i][j]*m[i][j] + F[i][j] - F[i][j+1] + F[i][j]; changes to
+	      //	      F[i+1][j] = F_coeff*G[i][j]*m[i][j] + F[i][j] - F[i][j] + F[i][j-1];
+	      //What are the implications of this? the slope at the immediately previous point in 
+	      //j coordinate space is what is used to calculate j. I don't think this is unreasonable.
+	      //It WILL affect the trueness of the solutions, but with a fine enough mesh, hopefully very little.
+	      F[i+1][j] = F_coeff*G[i][j]*m_eff + F[i][j-1];
+	      G[i+1][j] = G_coeff*F[i][j]*(V-E) + G[i][j-1];
+
+	      //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
+	      //Makes the upper solutions stable and oscillation free.
+	      //bidirectional deriviative version
+	      //F[i+1][j] = F_coeff*G[i][j]*m[i][j] + F[i-1][j] - F[i][j+1] + F[i][j-1];
+	      //G[i+1][j] = G_coeff * f[i][j]*(V-E) + G[i-1][j] - G[i][j+1]-G[i][j-1];
+
+	      //if (i%2==1){
+	      //F[i+1] = F_coeff * G[i] * m_eff + F[i]; 
+		//subbed in m_eff for m[i], To Do: support a position dependant
+		// mass by storing different masses at different locations (add to the PS_DATA structure probably)
+		//G[i+1] = G_coeff * F[i] * (V-E) + G[i];
+	      //}
+	      //if (i%2==0){
+	      //F[i+1] = 2*F_coeff * G[i] * m_eff + F[i-1]; 
+		//subbed in m_eff for m[i], To Do: support a position dependant
+		// mass by storing different masses at different locations (add to the PS_DATA structure probably)
+		//G[i+1] = 2*G_coeff * F[i] * (V-E) + G[i-1];
+	      //}
 	    }
 	  }
-	  f_cache[iter] = F[N-1];
+	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
+	  //might be useful during debugging.
+	  f_cache[iter] = F[Nx-1][Ny-1];
 		
 	  // Consider removing this for speed
 	  //         sprintf(log_message, "\tE=%g eV\tF[N-1]=%g\n", E/EV_TO_ERGS, F[N-1]);
 	  // ps_log(log_message);
 		
 	  //Try to detect which solutions are eigen states (bound states)
-	  if((iter > 0) && ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0))) { 
+	  //if((iter > 0) && ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0))) { 
 	    //if there was a change in sign between the last point of the prev
 	    // and current envelope function then there was a zero crossing and there a solution
 	    // test for a sign crossing
@@ -383,9 +402,9 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	    ps_list_add(solution_list, solution);
 
 	    // print a log message
-            sprintf(log_message, "\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[N], F_threshold);
+            sprintf(log_message, "\tBoundstate number %d with E=%e found, F[Nx][Ny]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[Nx][Ny], F_threshold);
 	    ps_log(log_message);
-	  }
+	    //}
 
 	  // Increment the energy
 	  E += Estep;
@@ -529,6 +548,7 @@ int main(int argc, char **argv) {
 
 	char msg[256];
 	PS_DATA potential;
+	int solver;
 	
 	if (1 == argc) {
 
@@ -542,7 +562,8 @@ int main(int argc, char **argv) {
 		// fclose(f);
 		// return 0;
 		
-	} else if (2 == argc) {
+	} 
+	else if (2 == argc) {
 		// Interpret argument as file to process
 
 		FILE *infile = fopen(argv[1], "r");
@@ -558,14 +579,36 @@ int main(int argc, char **argv) {
 
 			potential = ps_data_read_bin(infile);
 			fclose(infile);
+			solver = 1;
 		}
-	}
+	} 
+	else if (3 == argc) {
+		// lets say that if there is a third argument, it is a 2d request.
+                //Interpret argument as file to process
+
+		FILE *infile = fopen(argv[1], "r");
+		if (infile == NULL) {
+			sprintf(msg, "Error opening file '%s'\n", argv[1]);
+			ps_log(msg);
+			
+			return PS_ERROR_FILE_NOT_FOUND;  // Exit abnormally
+			
+		} else {
+			sprintf(msg, "Using *2D* potential from file '%s'\n", argv[1]);
+			ps_log(msg);
+
+			potential = ps_data_read_bin(infile);
+			fclose(infile);
+			solver = 2;
+		}
+        }
+
 
 	// Setup solution parameters
 	PS_SOLVE_PARAMETERS params;
 	params.energy_min = ps_data_min_value(potential);
 	params.energy_max = ps_data_max_value(potential);
-	params.n_iter = 10000; // The number of energies to try
+	params.n_iter = 100; // The number of energies to try
 	double e_step = (params.energy_max - params.energy_min)/(params.n_iter);
 		
 	sprintf(msg, "Testing energies from %g to %g in %g increments\n", params.energy_min/EV_TO_ERGS, params.energy_max/EV_TO_ERGS, e_step/EV_TO_ERGS);
@@ -573,29 +616,30 @@ int main(int argc, char **argv) {
 	
 	// Create a list for solutions
 	PS_LIST solutions = ps_list_create();
-	
-	// 1st pass coarse Solver
-	PS_LIST coarse_solutions = ps_solve_1D(potential, &params);
 
-	// For each solution, do a second pass with finer grained energy steps
-	PS_SOLUTION *s = ps_list_front(coarse_solutions);
-	while (s != NULL) {
-		// I know that ps_solve_1d looks for a sign crossing as it increases
-		// the test energy E and saves the solution for the larger energy
-		params.energy_min = s->energy - e_step;
-		params.energy_max = s->energy;
-		params.n_iter = 10000;
+        if(solver == 1){
+	  // 1st pass coarse Solver
+	  PS_LIST coarse_solutions = ps_solve_1D(potential, &params);
+
+	  // For each solution, do a second pass with finer grained energy steps
+	  PS_SOLUTION *s = ps_list_front(coarse_solutions);
+	  while (s != NULL) {
+	    // I know that ps_solve_1d looks for a sign crossing as it increases
+	    // the test energy E and saves the solution for the larger energy
+	    params.energy_min = s->energy - e_step;
+	    params.energy_max = s->energy;
+	    params.n_iter = 100;
 		
-		// Add the fine grain solutions to the final list
-		PS_LIST e_solutions = ps_solve_1D(potential, &params);
-		ps_list_add_all(solutions, e_solutions);
-		ps_list_destroy(e_solutions); // Destroy the list without destroying the data.
+	    // Add the fine grain solutions to the final list
+	    PS_LIST e_solutions = ps_solve_1D(potential, &params);
+	    ps_list_add_all(solutions, e_solutions);
+	    ps_list_destroy(e_solutions); // Destroy the list without destroying the data.
 		
-		// Next loop iteration
-		s = ps_list_next(coarse_solutions);
-	}
+	    // Next loop iteration
+	    s = ps_list_next(coarse_solutions);
+	  }
 	ps_list_destroy_all(coarse_solutions);
-		
+
 	// Write out solutions
 	sprintf(msg, "Found %i solutions.  Writing to E.txt and BS.dat\n", ps_list_size(solutions));
 	ps_log(msg);
@@ -617,6 +661,58 @@ int main(int argc, char **argv) {
 	//clean up
 	ps_data_destroy(potential);
 	ps_list_destroy_all(solutions);
+
+	}
+	else{
+	  // 1st pass coarse 2D Solver
+	  sprintf(msg, "Entering coarse 2D solver.\n");
+	  ps_log(msg);
+	  PS_LIST coarse_solutions = ps_solve_2D(potential, &params);
+
+	  // For each solution, do a second pass with finer grained energy steps
+	  PS_SOLUTION *s = ps_list_front(coarse_solutions);
+	  while (s != NULL) {
+	    // I know that ps_solve_1d looks for a sign crossing as it increases
+	    // the test energy E and saves the solution for the larger energy
+	    params.energy_min = s->energy - e_step;
+	    params.energy_max = s->energy;
+	    params.n_iter = 1;
 		
+	    // Add the fine grain solutions to the final list
+	    sprintf(msg, "Entering fine 2D solver.\n");
+	    ps_log(msg);
+	    PS_LIST e_solutions = ps_solve_2D(potential, &params);
+	    ps_list_add_all(solutions, e_solutions);
+	    ps_list_destroy(e_solutions); // Destroy the list without destroying the data.
+		
+	    // Next loop iteration
+	    s = ps_list_next(coarse_solutions);
+	  }
+	ps_list_destroy_all(coarse_solutions);
+
+	// Write out solutions
+	sprintf(msg, "Found %i solutions.  Writing to E.txt and BS.dat\n", ps_list_size(solutions));
+	ps_log(msg);
+	
+	FILE *efile = fopen("E.txt", "w");
+	fprintf(efile, "# Bound State Energies [eV]\n");
+	FILE *bsfile = fopen("BS.dat", "w");
+	s = ps_list_front(solutions);
+	while (s != NULL) {
+		// Write the energies to the energy file
+		fprintf(efile, "%g\n", s->energy/EV_TO_ERGS);
+		// Write the wavefunctions to the solutino file
+		ps_data_write_bin(s->wavefunction, bsfile);
+		s = ps_list_next(solutions);
+	}
+	fclose(bsfile);
+	fclose(efile);
+
+	//clean up
+	ps_data_destroy(potential);
+	ps_list_destroy_all(solutions);
+
+	}
+
 	return PS_OK;
 }
