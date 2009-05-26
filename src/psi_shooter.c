@@ -366,8 +366,8 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	    G[i][1] = 1;
 	  }
 
-	  //1D shots.
-	  for(i=1; i<Nx-1; i++){
+	  //1D shots. --Rolled into the next loop.
+	  /*	  for(i=1; i<Nx-1; i++){
 	    for(j=1; j<Ny-1; j++){
 	      V = ps_data_value(potential, i,j);//V[i][j]
 	      //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
@@ -381,7 +381,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	      //	G[i][j+1] = 2*G_coeff * F[i][j] * (V-E) + G[j][j-1];
 	      //      }
 	    }	    
-	  }
+	    }*/
 	  
         
 	  for(i=1; i<Nx-1; i++) {
