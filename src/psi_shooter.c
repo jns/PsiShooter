@@ -293,11 +293,24 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//F
 	//intial eqn                 -->  Div*F = G/M	
 	//convert to finite diff eqn -->  (F[x+dx,y]-F[x,y])/dx + (F[x,y+dy]-F[x,y])/dy = G[x,y]/M[x,y]	
-	//rearrange                  -->  F[x+dx,y]-F[x,y] + dx*(F[x,y+dy]-F[x,y])/dy = dx*G[x,y]/M[x,y]	
+	//rearrange                  -->  F[x+dx,y]-F[x,y] + dx*(F[x,y+dy]-F[x,y])/dy = dx*G[x,y]/M[x,y]
+	//                           -->  F[x+dx,y] = dx*G[x,y]/M[x,y]+F[x,y]-dx/dy*(F[x,y+dy]-F[x,y])
+	//                                What does this mean for our 2D simulations? The more closely spaced the y
+	//                                Coordinate mesh points are, the more significant their effects will be. That
+	//                                Is pretty terrible for us. 
+	//
+	//                                We need to decouple the coordinates so we don't need to know future F and G from
+	//                                from future calculated y mesh points...
+	//                                Is there some other way we can decouple them? We can't just look back instead of forward.
+	//
+	//                                How about we fill the array with 1D shots across the 1 direction, and then refill
+	//                                with the 2D shots? Then the array will have some approximate knowledge of the future
+	//                                and the algorithm might work.
 	
 	//convert to c style         -->  F[x+1,y] 
 
-	//in 2D                      -->  F[i+1][j] =F_coeff*G[i][j]*m[i][j] + F[i-1][j] - F[i][j+1] + F[i][j-1]
+	//in 2D                      -->  F[i+1][j] = dx*g[i][j]*m[i][j] + +F[i][j] - dx/dy*(F[i][y+1]-F[i][j])
+	//                                F[i+1][j] = F_coeff*G[i][j]*m[i][j] + F[i-1][j] - F[i][j+1] + F[i][j-1]
 	
 	//convert to 1D              -->  (F[x+dx]-F[x-dx])/(2dx) = G[x]/M[x]	
 	//rearrange                  -->  F[x+dx] = (2dx)*G[x]/M[x] + F[x-dx]
@@ -309,7 +322,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//G
 	//intial eqn                 -->  Div*G = F * 2*(V-E)/h_bar^2
 	//convert to finite diff eqn -->  (G[x+dx,y]-G[x-dx,y])/(2dx) + (G[x,y+dy]-G[x,y-dy])/(2dy) = F[x,y]*2*(V[x,y]-E[x,y])/h_bar^2
-	//in 2d:                     -->  G[x+dx,y] = (2dx)*F[x,y]*2*(V[x,y]-e[x,y])/h_bar^2+G[x-dx][y]-(G[x,y+dy]-G[x,y-dy])
+	//in 2d:                     -->  G[x+dx,y] = (2dx)*F[x,y]*2*(V[x,y]-e[x,y])/h_bar^2+G[x-dx][y]-(G[x,y+dy]-G[x,y-dy])/(2dy)
 	//                           -->  G[i+1][j] = G_coeff * f[i][j]*(V[i][j]-E) + G[i-1][j] - G[i][j+1] + G[i][j-1]
 	//
 
@@ -336,6 +349,8 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//(think heterostructures with different band edge curvatures)
 		
 	for (iter = 0; iter < params->n_iter; iter++) {
+
+	  //Going to try filling the array with y-direction shots and then running the 2D shots based on those.
 		
 	  //initial conditions
 	  for (j=1; j<Ny; j++){
@@ -344,6 +359,30 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	    F[1][j] = 0;
 	    G[1][j] = 1;
 	  }
+	  for (i=1; i<Nx; i++){
+	    F[i][0] = 0;
+	    G[i][0] = 1;
+	    F[i][1] = 0;
+	    G[i][1] = 1;
+	  }
+
+	  //1D shots.
+	  for(i=1; i<Nx-1; i++){
+	    for(j=1; j<Ny-1; j++){
+	      V = ps_data_value(potential, i,j);//V[i][j]
+	      //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
+	      //Makes the upper solutions stable and oscillation free.
+	      //    if (i%2==1){
+		F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j]; 
+		G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j];
+		//     }
+	      //   if (i%2==0){
+	      //	F[i][j+1] = 2*F_coeff * G[i][j] * m_eff + F[i][j-1]; 
+	      //	G[i][j+1] = 2*G_coeff * F[i][j] * (V-E) + G[j][j-1];
+	      //      }
+	    }	    
+	  }
+	  
         
 	  for(i=1; i<Nx-1; i++) {
 	    for(j=1; j<Ny-1; j++) {
@@ -354,14 +393,32 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	      //What are the implications of this? the slope at the immediately previous point in 
 	      //j coordinate space is what is used to calculate j. I don't think this is unreasonable.
 	      //It WILL affect the trueness of the solutions, but with a fine enough mesh, hopefully very little.
-	      F[i+1][j] = F_coeff*G[i][j]*m_eff + F[i][j-1];
-	      G[i+1][j] = G_coeff*F[i][j]*(V-E) + G[i][j-1];
+	      //F[i+1][j] = F_coeff*G[i][j]*m_eff + F[i][j-1];
+	      //G[i+1][j] = G_coeff*F[i][j]*(V-E) + G[i][j-1];
+	      
+	      //1D Shots -- see note above.
+	      //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
+	      //Makes the upper solutions stable and oscillation free.
+	      //    if (i%2==1){
+		F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j]; 
+		G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j];
+		//    }
+		//     if (i%2==0){
+		//	F[i][j+1] = 2*F_coeff * G[i][j] * m_eff + F[i][j-1]; 
+		//	G[i][j+1] = 2*G_coeff * F[i][j] * (V-E) + G[j][j-1];
+		//     }
 
 	      //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
 	      //Makes the upper solutions stable and oscillation free.
 	      //bidirectional deriviative version
-	      //F[i+1][j] = F_coeff*G[i][j]*m[i][j] + F[i-1][j] - F[i][j+1] + F[i][j-1];
-	      //G[i+1][j] = G_coeff * f[i][j]*(V-E) + G[i-1][j] - G[i][j+1]-G[i][j-1];
+	      //if (i%2==1){
+		F[i+1][j] = F_coeff * G[i][j]*m_eff + F[i][j] - F[i][j+1] + F[i][j];
+		G[i+1][j] = G_coeff * F[i][j]*(V-E) + G[i][j] - G[i][j+1] + G[i][j];
+		// }
+		//   if (i%2==0){
+		//     F[i+1][j] = F_coeff * G[i][j]*m_eff + F[i-1][j] - F[i][j+1] + F[i][j-1];
+		//     G[i+1][j] = G_coeff * F[i][j]*(V-E) + G[i-1][j] - G[i][j+1] + G[i][j-1];
+	      //   }
 
 	      //if (i%2==1){
 	      //F[i+1] = F_coeff * G[i] * m_eff + F[i]; 
@@ -611,7 +668,7 @@ int main(int argc, char **argv) {
 	params.n_iter = 100; // The number of energies to try
 	double e_step = (params.energy_max - params.energy_min)/(params.n_iter);
 		
-	sprintf(msg, "Testing energies from %g to %g in %g increments\n", params.energy_min/EV_TO_ERGS, params.energy_max/EV_TO_ERGS, e_step/EV_TO_ERGS);
+	sprintf(msg,"Testing energies from %g to %g in %g increments\n",params.energy_min/EV_TO_ERGS,params.energy_max/EV_TO_ERGS,e_step/EV_TO_ERGS);
 	ps_log(msg);
 	
 	// Create a list for solutions
