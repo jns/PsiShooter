@@ -408,6 +408,10 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 			// 	F[i][j+1] = 2*F_coeff * G[i][j] * m_eff + F[i][j-1] - 2*dx_dy*(F[i][j] - F[i-1][j]); 
 			// 	G[i][j+1] = 2*G_coeff * F[i][j] * (V-E) + G[i][j-1] - 2*dx_dy*(G[i][j] - G[i-1][j]);
 			// }
+			if (1 == i) {
+				F[i-1][j] = F[i][j];
+				G[i-1][j] = G[i][j];
+			}
 	    }
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
