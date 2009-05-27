@@ -3,16 +3,21 @@ class Potential
   
   EV_TO_ERGS=1.60217646e-12
   
-  def initialize(xmin, xmax, xstep, proc)
-    @xdata = []
-    xmin.step(xmax, xstep) {|x| 
-      @xdata << x
-      }
+  # def initialize(xmin, xmax, xstep, proc)
+  #   @xdata = []
+  #   xmin.step(xmax, xstep) {|x| 
+  #     @xdata << x
+  #     }
+  #   @ydata = [1]
+  #   @data = []
+  #   @xdata.each{|x|
+  #     @data << proc.call(x)*EV_TO_ERGS
+  #   }
+  # end
+  def initialize(xdata, ydata)
+    @xdata = xdata
     @ydata = [1]
-    @data = []
-    @xdata.each{|x|
-      @data << proc.call(x)*EV_TO_ERGS
-    }
+    @data = ydata
   end
   
   def xdata 

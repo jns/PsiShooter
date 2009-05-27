@@ -62,6 +62,7 @@ data = [];
 psi = [];
 vPath = [];
 binPath = [];
+energies = [];
 
 % Choose default command line output for psiShooterGUI
 handles.output = hObject;
@@ -205,7 +206,8 @@ switch loadMenu_index
         seperationIndex = find(input==' ');
         x = str2num(input(seperationIndex:end));
         potentialFunction = input(1:seperationIndex);
-        potential.x = x;
+        %Scale into cm
+        potential.x = x*1e2;
         potential.y = 0;
         potential.data = eval(potentialFunction);
         data = potential(1);
@@ -235,7 +237,7 @@ switch loadMenu_index
         
         vPath = 'potentialFromFunction';
         
-        %write the function defined potential to a file scaled into ergs.
+        %write the function defined potential to a file scaled into cm and ergs.
         writeFile(potential.x,potential.y,1.60217646e-12*potential.data,vPath);
     case 4
         currSysMessText =[{'Load Default Potential'};currSysMessText];
@@ -345,6 +347,13 @@ else
 end
 set(handles.systemMessages, 'String',currSysMessText);
 
+%messages(end-42:end-40) should be the place where the binary the number of
+%solutions it found. If it found 
+if str2num(messages(end-43:end-40)) == 0
+    currSysMessText = [{'NO SOLUTIONS FOUND'};currSysMessText];
+    set(handles.systemMessages, 'String',currSysMessText);
+    return
+end
 %Assuming that these are in the present working directory
 [psi,messages] = loadData('BS.dat');
 currSysMessText =[messages;currSysMessText];
@@ -486,6 +495,8 @@ function systemMessages_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of systemMessages as text
 %        str2double(get(hObject,'String')) returns contents of
 %        systemMessages as a double
+
+'Arbitrary Breakpoint';
 
 
 % --- Executes during object creation, after setting all properties.
@@ -941,14 +952,15 @@ end
 
 legendText = [];
 for n = 1:1:narginC/4
+    %X axis multiplied by 1e7 to convert from cm to nm in display.
     if strcmp(color{n},'randomize')
-        plot(X(:,n),Y(:,n)+offset{n},'Color',[rand(1),rand(1),rand(1)]);
+        plot(X(:,n)*1e7,Y(:,n)+offset{n},'Color',[rand(1),rand(1),rand(1)]);
         legendText = [legendText;{['#' num2str(n) ' ' ...
             num2str(offset{n}) ' eV']}];
     elseif strcmp(color{n},'black')
-        plot(X(:,n),Y(:,n)+offset{n},color{n})
+        plot(X(:,n)*1e7,Y(:,n)+offset{n},color{n})
     else
-        plot(X(:,n),Y(:,n)+offset{n},color{n})
+        plot(X(:,n)*1e7,Y(:,n)+offset{n},color{n})
         legendText = [legendText;{['#' num2str(n) ' ' ...
             num2str(offset{n}) ' eV']}];
     end
@@ -1001,7 +1013,7 @@ end
 
 for n = 1:4:narginC
     if n == 1 %plot styles set up for the potential (more transparent)
-        h(1)=surf(vararginC{n},vararginC{n+1},vararginC{n+2});
+        h(1)=surf(vararginC{n}*1e7,vararginC{n+1}*1e7,vararginC{n+2}/1.60217646e-12);
         set(h(1),'facealpha',0.35);
         set(h(1),'edgealpha',0.01);
         hold on;
@@ -1009,7 +1021,7 @@ for n = 1:4:narginC
         %h(n) is the handle for the graphic objects I am creating. They can
         %be accessed by get or set(h(n)) with whatever property you want to
         %mess with.
-        h(n)=surf(vararginC{n},vararginC{n+1},vararginC{n+2}+vararginC{n+3});
+        h(n)=surf(vararginC{n}*1e7,vararginC{n+1}*1e7,vararginC{n+2}+vararginC{n+3});
         set(h(n),'facealpha',0.7);
         set(h(n),'edgealpha',0.1);
     end
