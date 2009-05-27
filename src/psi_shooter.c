@@ -98,7 +98,7 @@ void ps_log(char *msg) {
 //
 //Rearranging (14) and (15) slightly:
 //      +--------------------------------------------------------------+
-//(16)  |             Div*F = G / M                                    |
+//(16)  |             Div*F = G / M                                    |     !!! DONT BE FOOLED,  M = 1/m_eff (JNS)
 //(17)  |             Div*G = F * 2*(V-E)/h_bar^2                      |
 //      +--------------------------------------------------------------+----> These are the useful equations the solver will implement
 //
@@ -195,7 +195,8 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	  for(i=1; i<N-1; i++) {
 	    V = ps_data_value(potential, 0,i); //V[i]
 	    //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
-	    //Makes the upper solutions stable and oscillation free.
+	    //Makes the upper solutions stable and oscillation free. (Probably only required on the i==1 index -jns) 
+		// TODO compare results of this branching statement with IF (1==i) ... ELSE ...
 	    if (i%2==1){
 	      F[i+1] = F_coeff * G[i] * m_eff + F[i]; 
 	      //subbed in m_eff for m[i], To Do: support a position dependant
@@ -287,12 +288,12 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//(TODO: Compute this inside loop in order to support meshes with non-uniform differential steps)
 	double dx = ps_data_dx_at(potential, 2); 
 	double dy = ps_data_dy_at(potential, 2); // 0 to 1 is wierd, maybe. 
-	
+	double dx_dy = dx/dy; 
 
 	
 	//F
-	//intial eqn                 -->  Div*F = G/M	
-	//convert to finite diff eqn -->  (F[x+dx,y]-F[x,y])/dx + (F[x,y+dy]-F[x,y])/dy = G[x,y]/M[x,y]	
+	//intial eqn                 -->  Div*F = G * m_eff	
+	//convert to finite diff eqn -->  (F[x+dx,y]-F[x,y])/dx + (F[x,y+dy]-F[x,y])/dy = G[x,y]M[x,y]	
 	//rearrange                  -->  F[x+dx,y]-F[x,y] + dx*(F[x,y+dy]-F[x,y])/dy = dx*G[x,y]/M[x,y]
 	//                           -->  F[x+dx,y] = dx*G[x,y]/M[x,y]+F[x,y]-dx/dy*(F[x,y+dy]-F[x,y])
 	//                                What does this mean for our 2D simulations? The more closely spaced the y
@@ -307,10 +308,11 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//                                with the 2D shots? Then the array will have some approximate knowledge of the future
 	//                                and the algorithm might work.
 	
-	//convert to c style         -->  F[x+1,y] 
+	//convert to c style         -->  F[x+dx,y] = F[i][j+1]
+	// *****README*******    	 --> (NOTE: x is iterated over with j index. x=columns, i=rows) -jns
 
-	//in 2D                      -->  F[i+1][j] = dx*g[i][j]*m[i][j] + +F[i][j] - dx/dy*(F[i][y+1]-F[i][j])
-	//                                F[i+1][j] = F_coeff*G[i][j]*m[i][j] + F[i-1][j] - F[i][j+1] + F[i][j-1]
+	//in 2D                      -->  F[i][j+1] = dx*G[i][j]/M[i][j] + F[i][j] - dx/dy*(F[i+1][j]-F[i][j])
+
 	
 	//convert to 1D              -->  (F[x+dx]-F[x-dx])/(2dx) = G[x]/M[x]	
 	//rearrange                  -->  F[x+dx] = (2dx)*G[x]/M[x] + F[x-dx]
@@ -322,9 +324,12 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//G
 	//intial eqn                 -->  Div*G = F * 2*(V-E)/h_bar^2
 	//convert to finite diff eqn -->  (G[x+dx,y]-G[x-dx,y])/(2dx) + (G[x,y+dy]-G[x,y-dy])/(2dy) = F[x,y]*2*(V[x,y]-E[x,y])/h_bar^2
-	//in 2d:                     -->  G[x+dx,y] = (2dx)*F[x,y]*2*(V[x,y]-e[x,y])/h_bar^2+G[x-dx][y]-(G[x,y+dy]-G[x,y-dy])/(2dy)
-	//                           -->  G[i+1][j] = G_coeff * f[i][j]*(V[i][j]-E) + G[i-1][j] - G[i][j+1] + G[i][j-1]
+	//in 2d:                     -->  G[x+dx,y] = (2dx)*F[x,y]*2*(V[x,y]-e[x,y])/h_bar^2+G[x-dx][y]-(2dx)/(2dy)(G[x,y+dy]-G[x,y-dy])
+	//                           -->  G[i][j+1] = G_coeff * F[i][j]*(V[i][j]-E) + G[i][j-1] - dx/dy(G[i+1][j] + G[i-1][j])
 	//
+	// The equivalent FWD DIFFEQ -->  G[x+dx][y] = dx*F[x,y]*2*(V[x,y] - e[x,y])/h_bar^2 + G[x,y] - dx/dy(G[x,y+dy] - G[x,y])
+	// 						     -->  G[i][j+1] = dx*F[i][j]*2*(V[i][j] - e[i][j])/h_bar^2 + G[i][j] - dx/dy(G[i+1][j] - G[i][j])
+
 
 	//convert to 1D              -->  G[x+dx]-G[x-dx]/(2dx) = F[x]*2*(V[x]-E)/h_bar^2	
 	//rearrange                  -->  G[x+dx] = (2dx)*F[x]*2*(V[x]-E)/h_bar^2 + G[x-dx]
@@ -396,46 +401,19 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	      //F[i+1][j] = F_coeff*G[i][j]*m_eff + F[i][j-1];
 	      //G[i+1][j] = G_coeff*F[i][j]*(V-E) + G[i][j-1];
 	      
-	      //1D Shots -- see note above.
-	      //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
-	      //Makes the upper solutions stable and oscillation free.
-	      //    if (i%2==1){
-		F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j]; 
-		G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j];
-		//    }
-		//     if (i%2==0){
-		//	F[i][j+1] = 2*F_coeff * G[i][j] * m_eff + F[i][j-1]; 
-		//	G[i][j+1] = 2*G_coeff * F[i][j] * (V-E) + G[j][j-1];
-		//     }
+			// Compute Next row using 1D difference equation 
+			F[i+1][j] = F_coeff * G[i][j] * m_eff + F[i][j]; 
+			G[i+1][j] = G_coeff * F[i][j] * (V-E) + G[i][j];
+  
+			// Compute coupled 2D difference equation advancing in column space
+			F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i+1][j] - F[i][j]); 
+			G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i+1][j] - G[i][j]);
 
-	      //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
-	      //Makes the upper solutions stable and oscillation free.
-	      //bidirectional deriviative version
-	      //if (i%2==1){
-		F[i+1][j] = F_coeff * G[i][j]*m_eff + F[i][j] - F[i][j+1] + F[i][j];
-		G[i+1][j] = G_coeff * F[i][j]*(V-E) + G[i][j] - G[i][j+1] + G[i][j];
-		// }
-		//   if (i%2==0){
-		//     F[i+1][j] = F_coeff * G[i][j]*m_eff + F[i-1][j] - F[i][j+1] + F[i][j-1];
-		//     G[i+1][j] = G_coeff * F[i][j]*(V-E) + G[i-1][j] - G[i][j+1] + G[i][j-1];
-	      //   }
-
-	      //if (i%2==1){
-	      //F[i+1] = F_coeff * G[i] * m_eff + F[i]; 
-		//subbed in m_eff for m[i], To Do: support a position dependant
-		// mass by storing different masses at different locations (add to the PS_DATA structure probably)
-		//G[i+1] = G_coeff * F[i] * (V-E) + G[i];
-	      //}
-	      //if (i%2==0){
-	      //F[i+1] = 2*F_coeff * G[i] * m_eff + F[i-1]; 
-		//subbed in m_eff for m[i], To Do: support a position dependant
-		// mass by storing different masses at different locations (add to the PS_DATA structure probably)
-		//G[i+1] = 2*G_coeff * F[i] * (V-E) + G[i-1];
-	      //}
 	    }
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
 	  //might be useful during debugging.
+	  // It needs to check the entire boundary. (jns)
 	  f_cache[iter] = F[Nx-1][Ny-1];
 		
 	  // Consider removing this for speed
@@ -612,12 +590,12 @@ int main(int argc, char **argv) {
 		sprintf(msg, "No file specified. Using builtin potential.\n");
 		ps_log(msg);
 		//get a 1D test potential
-		potential = test_potential_1D();
-		// 
-		// FILE *f = fopen("V_2d.dat", "w");
-		// ps_data_write_bin(potential, f);
-		// fclose(f);
-		// return 0;
+		potential = test_potential_2D();
+		
+		FILE *f = fopen("V_2d.dat", "w");
+		ps_data_write_bin(potential, f);
+		fclose(f);
+		return 0;
 		
 	} 
 	else if (2 == argc) {
