@@ -337,8 +337,11 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//rearrange                  -->  G[x+dx] = (2dx)*F[x]*2*(V[x]-E)/h_bar^2 + G[x-dx]
 	//convert to c style         -->  G[i+1] = 4*dx/hbar^2 * F[i]*(V[i]-E) + G[i-1]
 	//                                G[i+1] = G_coeff * F[i]*(V[i]-E) + G[i-1]
-	double G_coeff = 2*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
+//	double G_coeff = 2*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
 	//from 4*dx to 2*dx jh sometime in may
+
+	double G_coeff = 2*dx*G_COEFF;
+	
 	//dx = dy here.
 	double F[Nx][Ny]; //the envelope function (wavefunction)
 	double f_cache[params->n_iter]; // We cache the last value of the envelope for each solution
@@ -350,7 +353,9 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	double E = params->energy_min;
 	double Estep = (params->energy_max - params->energy_min)/(params->n_iter); 
 	double V; //meV, Current potential
-	double m_eff = MASS_ELECTRON*M_EFF_GAAS;
+//	double m_eff = MASS_ELECTRON*M_EFF_GAAS;
+	double m_eff = M_EFF_GAAS;
+
 	// To Do: make the electron mass be part of the structure that we are simulating. i.e. 
 	//in general it can be a position dependant quantity just like the potential 
 	//(think heterostructures with different band edge curvatures)
@@ -520,8 +525,8 @@ PS_DATA test_potential_1D() {
 // Regoin 0: V=0
 PS_DATA test_potential_2D() {
 	//For convience of trying different scenarios the test potential is defined here in terms of nanometers * cm/nm
-	double well_width_x = 10 * 1e-7; //nm * cm/nm = cm, region 2
-	double barrier_width_x = 10 * 1e-7; //nm * cm/nm , regions 1 and 3
+	double well_width_x = 10; // * 1e-7; //nm * cm/nm = cm, region 2
+	double barrier_width_x = 10; // * 1e-7; //nm * cm/nm , regions 1 and 3
 	double well_width_y = well_width_x; //square for now.
 	double barrier_width_y = barrier_width_x; //square for now.
 
@@ -533,7 +538,7 @@ PS_DATA test_potential_2D() {
 	int ysize = number_of_points_y;
 	double ystep = (well_width_y + barrier_width_y + barrier_width_y)/((double)number_of_points_y); //total width converted to cm divided by the number of points = width per point
 
-	double Vb = 0.5*EV_TO_ERGS; // eV barrier
+	double Vb = 0.5; //*EV_TO_ERGS; // eV barrier
 	
 	PS_DATA potential = ps_data_create(xsize, ysize);
 	potential->xstep = xstep; // This is temporary.  Jere and I have changed the file format to support non-uniform rectilinear grids
@@ -585,12 +590,12 @@ int main(int argc, char **argv) {
 		sprintf(msg, "No file specified. Using builtin potential.\n");
 		ps_log(msg);
 		//get a 1D test potential
-		potential = test_potential_1D();
+		potential = test_potential_2D();
 		
 		FILE *f = fopen("V_2d.dat", "w");
 		ps_data_write_bin(potential, f);
 		fclose(f);
-		solver = 1;
+		solver = 2;
 	} 
 	else if (2 == argc) {
 		// Interpret argument as file to process
