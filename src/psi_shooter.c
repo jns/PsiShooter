@@ -293,9 +293,9 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	
 	//F
 	//intial eqn                 -->  Div*F = G * m_eff	
-	//convert to finite diff eqn -->  (F[x+dx,y]-F[x,y])/dx + (F[x,y+dy]-F[x,y])/dy = G[x,y]M[x,y]	
-	//rearrange                  -->  F[x+dx,y]-F[x,y] + dx*(F[x,y+dy]-F[x,y])/dy = dx*G[x,y]/M[x,y]
-	//                           -->  F[x+dx,y] = dx*G[x,y]/M[x,y]+F[x,y]-dx/dy*(F[x,y+dy]-F[x,y])
+	//convert to finite diff eqn -->  (F[x+dx,y]-F[x,y])/dx + (F[x,y]-F[x,y-dy])/dy = G[x,y]M[x,y]	
+	//rearrange                  -->  F[x+dx,y]-F[x,y] + dx*(F[x,y]-F[x,y-dy])/dy = dx*G[x,y]/M[x,y]
+	//                           -->  F[x+dx,y] = dx*G[x,y]/M[x,y]+F[x,y]-dx/dy*(F[x,y]-F[x,y-dy])
 	//                                What does this mean for our 2D simulations? The more closely spaced the y
 	//                                Coordinate mesh points are, the more significant their effects will be. That
 	//                                Is pretty terrible for us. 
@@ -311,7 +311,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//convert to c style         -->  F[x+dx,y] = F[i][j+1]
 	// *****README*******    	 --> (NOTE: x is iterated over with j index. x=columns, i=rows) -jns
 
-	//in 2D                      -->  F[i][j+1] = dx*G[i][j]/M[i][j] + F[i][j] - dx/dy*(F[i+1][j]-F[i][j])
+	//in 2D                      -->  F[i][j+1] = dx*G[i][j]/M[i][j] + F[i][j] - dx/dy*(F[i][j]-F[i-1][j])
 
 	
 	//convert to 1D              -->  (F[x+dx]-F[x-dx])/(2dx) = G[x]/M[x]	
@@ -327,8 +327,8 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//in 2d:                     -->  G[x+dx,y] = (2dx)*F[x,y]*2*(V[x,y]-e[x,y])/h_bar^2+G[x-dx][y]-(2dx)/(2dy)(G[x,y+dy]-G[x,y-dy])
 	//                           -->  G[i][j+1] = G_coeff * F[i][j]*(V[i][j]-E) + G[i][j-1] - dx/dy(G[i+1][j] + G[i-1][j])
 	//
-	// The equivalent FWD DIFFEQ -->  G[x+dx][y] = dx*F[x,y]*2*(V[x,y] - e[x,y])/h_bar^2 + G[x,y] - dx/dy(G[x,y+dy] - G[x,y])
-	// 						     -->  G[i][j+1] = dx*F[i][j]*2*(V[i][j] - e[i][j])/h_bar^2 + G[i][j] - dx/dy(G[i+1][j] - G[i][j])
+	// The equivalent FWD DIFFEQ -->  G[x+dx][y] = dx*F[x,y]*2*(V[x,y] - e[x,y])/h_bar^2 + G[x,y] - dx/dy(G[x,y] - G[x,y-dy])
+	// 						     -->  G[i][j+1] = dx*F[i][j]*2*(V[i][j] - e[i][j])/h_bar^2 + G[i][j] - dx/dy(G[i][j] - G[i-1][j])
 
 
 	//convert to 1D              -->  G[x+dx]-G[x-dx]/(2dx) = F[x]*2*(V[x]-E)/h_bar^2	
@@ -389,25 +389,13 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	    }*/
 	  
         
-	  for(i=1; i<Nx-1; i++) {
-	    for(j=1; j<Ny-1; j++) {
+	  for(i=1; i<Nx; i++) {
+	    for(j=0; j<Ny-1; j++) {
 	      V = ps_data_value(potential, i,j); //V[i][j]
-	      //Make a change so we don't need to know the future:
-	      //F[i+1][j] = F_coeff*G[i][j]*m[i][j] + F[i][j] - F[i][j+1] + F[i][j]; changes to
-	      //	      F[i+1][j] = F_coeff*G[i][j]*m[i][j] + F[i][j] - F[i][j] + F[i][j-1];
-	      //What are the implications of this? the slope at the immediately previous point in 
-	      //j coordinate space is what is used to calculate j. I don't think this is unreasonable.
-	      //It WILL affect the trueness of the solutions, but with a fine enough mesh, hopefully very little.
-	      //F[i+1][j] = F_coeff*G[i][j]*m_eff + F[i][j-1];
-	      //G[i+1][j] = G_coeff*F[i][j]*(V-E) + G[i][j-1];
-	      
-			// Compute Next row using 1D difference equation 
-			F[i+1][j] = F_coeff * G[i][j] * m_eff + F[i][j]; 
-			G[i+1][j] = G_coeff * F[i][j] * (V-E) + G[i][j];
-  
+	        
 			// Compute coupled 2D difference equation advancing in column space
-			F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i+1][j] - F[i][j]); 
-			G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i+1][j] - G[i][j]);
+			F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
+			G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);
 
 	    }
 	  }
@@ -531,8 +519,8 @@ PS_DATA test_potential_2D() {
 	double well_width_y = well_width_x; //square for now.
 	double barrier_width_y = barrier_width_x; //square for now.
 
-	int number_of_points_x = 50;
-	int number_of_points_y = 50;
+	int number_of_points_x = 100;
+	int number_of_points_y = 100;
 	
 	int xsize = number_of_points_x;
 	double xstep = (well_width_x + barrier_width_x + barrier_width_x)/((double)number_of_points_x); //total width converted to cm divided by the number of points = width per point
@@ -584,6 +572,7 @@ int main(int argc, char **argv) {
 	char msg[256];
 	PS_DATA potential;
 	int solver;
+	PS_SOLUTION *s;
 	
 	if (1 == argc) {
 
@@ -595,8 +584,7 @@ int main(int argc, char **argv) {
 		FILE *f = fopen("V_2d.dat", "w");
 		ps_data_write_bin(potential, f);
 		fclose(f);
-		return 0;
-		
+		solver = 2;
 	} 
 	else if (2 == argc) {
 		// Interpret argument as file to process
@@ -641,8 +629,8 @@ int main(int argc, char **argv) {
 
 	// Setup solution parameters
 	PS_SOLVE_PARAMETERS params;
-	params.energy_min = ps_data_min_value(potential);
-	params.energy_max = ps_data_max_value(potential);
+	params.energy_min = 0.05*EV_TO_ERGS; //ps_data_min_value(potential);
+	params.energy_max = 0.06*EV_TO_ERGS; //ps_data_max_value(potential);
 	params.n_iter = 100; // The number of energies to try
 	double e_step = (params.energy_max - params.energy_min)/(params.n_iter);
 		
@@ -652,28 +640,35 @@ int main(int argc, char **argv) {
 	// Create a list for solutions
 	PS_LIST solutions = ps_list_create();
 
-        if(solver == 1){
 	  // 1st pass coarse Solver
-	  PS_LIST coarse_solutions = ps_solve_1D(potential, &params);
+	if (1 == solver) {
+		// 1d solver with coarse/fine pass
+		PS_LIST coarse_solutions = ps_solve_1D(potential, &params);	
+		 // For each solution, do a second pass with finer grained energy steps
+		 s = ps_list_front(coarse_solutions);
+		 while (s != NULL) {
+		   // I know that ps_solve_1d looks for a sign crossing as it increases
+		   // the test energy E and saves the solution for the larger energy
+		   params.energy_min = s->energy - e_step;
+		   params.energy_max = s->energy;
+		   params.n_iter = 100;
 
-	  // For each solution, do a second pass with finer grained energy steps
-	  PS_SOLUTION *s = ps_list_front(coarse_solutions);
-	  while (s != NULL) {
-	    // I know that ps_solve_1d looks for a sign crossing as it increases
-	    // the test energy E and saves the solution for the larger energy
-	    params.energy_min = s->energy - e_step;
-	    params.energy_max = s->energy;
-	    params.n_iter = 100;
-		
-	    // Add the fine grain solutions to the final list
-	    PS_LIST e_solutions = ps_solve_1D(potential, &params);
-	    ps_list_add_all(solutions, e_solutions);
-	    ps_list_destroy(e_solutions); // Destroy the list without destroying the data.
-		
-	    // Next loop iteration
-	    s = ps_list_next(coarse_solutions);
-	  }
-	ps_list_destroy_all(coarse_solutions);
+		   // Add the fine grain solutions to the final list
+		   PS_LIST e_solutions = ps_solve_1D(potential, &params);
+		   ps_list_add_all(solutions, e_solutions);
+		   ps_list_destroy(e_solutions); // Destroy the list without destroying the data.
+
+		   // Next loop iteration
+		   s = ps_list_next(coarse_solutions);
+		 }
+		ps_list_destroy_all(coarse_solutions);
+
+	} else {
+		// 2d solver
+		PS_LIST coarse_solutions = ps_solve_2D(potential, &params);
+		ps_list_add_all(solutions, coarse_solutions);
+		ps_list_destroy(coarse_solutions);
+	}
 
 	// Write out solutions
 	sprintf(msg, "Found %i solutions.  Writing to E.txt and BS.dat\n", ps_list_size(solutions));
@@ -696,58 +691,6 @@ int main(int argc, char **argv) {
 	//clean up
 	ps_data_destroy(potential);
 	ps_list_destroy_all(solutions);
-
-	}
-	else{
-	  // 1st pass coarse 2D Solver
-	  sprintf(msg, "Entering coarse 2D solver.\n");
-	  ps_log(msg);
-	  PS_LIST coarse_solutions = ps_solve_2D(potential, &params);
-
-	  // For each solution, do a second pass with finer grained energy steps
-	  PS_SOLUTION *s = ps_list_front(coarse_solutions);
-	  while (s != NULL) {
-	    // I know that ps_solve_1d looks for a sign crossing as it increases
-	    // the test energy E and saves the solution for the larger energy
-	    params.energy_min = s->energy - e_step;
-	    params.energy_max = s->energy;
-	    params.n_iter = 1;
-		
-	    // Add the fine grain solutions to the final list
-	    sprintf(msg, "Entering fine 2D solver.\n");
-	    ps_log(msg);
-	    PS_LIST e_solutions = ps_solve_2D(potential, &params);
-	    ps_list_add_all(solutions, e_solutions);
-	    ps_list_destroy(e_solutions); // Destroy the list without destroying the data.
-		
-	    // Next loop iteration
-	    s = ps_list_next(coarse_solutions);
-	  }
-	ps_list_destroy_all(coarse_solutions);
-
-	// Write out solutions
-	sprintf(msg, "Found %i solutions.  Writing to E.txt and BS.dat\n", ps_list_size(solutions));
-	ps_log(msg);
-	
-	FILE *efile = fopen("E.txt", "w");
-	fprintf(efile, "# Bound State Energies [eV]\n");
-	FILE *bsfile = fopen("BS.dat", "w");
-	s = ps_list_front(solutions);
-	while (s != NULL) {
-		// Write the energies to the energy file
-		fprintf(efile, "%g\n", s->energy/EV_TO_ERGS);
-		// Write the wavefunctions to the solutino file
-		ps_data_write_bin(s->wavefunction, bsfile);
-		s = ps_list_next(solutions);
-	}
-	fclose(bsfile);
-	fclose(efile);
-
-	//clean up
-	ps_data_destroy(potential);
-	ps_list_destroy_all(solutions);
-
-	}
 
 	return PS_OK;
 }
