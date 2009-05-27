@@ -172,8 +172,10 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//rearrange                  -->  G[x+dx] = (2dx)*F[x]*2*(V[x]-E)/h_bar^2 + G[x-dx]
 	//convert to c style         -->  G[i+1] = 4*dx/hbar^2 * F[i]*(V[i]-E) + G[i-1]
 	//                                G[i+1] = G_coeff * F[i]*(V[i]-E) + G[i-1]
-	double G_coeff = 2*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
+//	double G_coeff = 2*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
 	//from 4*dx to 2*dx jh sometime in may
+
+	double G_coeff = 2*dx*G_COEFF; // Redefined to use M_ELECTRON/HBAR^2 using assuming units of nm and eV
     
 	int bound_state_count = 0;	
 	int threshold_set_flag = 0; 
@@ -182,8 +184,9 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	double E = params->energy_min;
 	double Estep = (params->energy_max - params->energy_min)/(params->n_iter); 
 	double V; //meV, Current potential
-	double m_eff = MASS_ELECTRON*M_EFF_GAAS;// To Do: make the electron mass be part of the structure that we are simulating. i.e. in general it can be a position dependant quantity just like the potential (think heterostructures with different band edge curvatures)
-		
+//	double m_eff = MASS_ELECTRON*M_EFF_GAAS;// To Do: make the electron mass be part of the structure that we are simulating. i.e. in general it can be a position dependant quantity just like the potential (think heterostructures with different band edge curvatures)
+	double m_eff = M_EFF_GAAS;
+	
 	for (iter = 0; iter < params->n_iter; iter++) {
 		
 	  //initial conditions
@@ -233,7 +236,7 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	    ps_list_add(solution_list, solution);
 
 	    // print a log message
-            sprintf(log_message, "\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[N], F_threshold);
+            sprintf(log_message, "\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy, F[N], F_threshold);
 	    ps_log(log_message);
 	  }
 
@@ -458,14 +461,14 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 // Region:      1      2     3  
 PS_DATA test_potential_1D() {
 	//For convience of trying different scenarios the test potential is defined here in terms of nanometers * cm/nm
-	double well_width = 10 * 1e-7; //nm * cm/nm = cm, region 2
-	double barrier_width = 10 * 1e-7; //nm * cm/nm , regions 1 and 3
+	double well_width = 10; // * 1e-7; //nm * cm/nm = cm, region 2
+	double barrier_width = 10; // * 1e-7; //nm * cm/nm , regions 1 and 3
 	int number_of_points = 1000;
 	 
 	int xsize = number_of_points;
 	double xstep = (well_width + barrier_width + barrier_width)/((double)number_of_points); //total width converted to cm divided by the number of points = width per point
 	int ysize = 1; //1D for now so only 1 "row"
-	double Vb = 0.5*EV_TO_ERGS; // eV barrier
+	double Vb = 0.5; //*EV_TO_ERGS; // eV barrier
 	
 	PS_DATA potential = ps_data_create(xsize, ysize);
 	potential->xstep = xstep; // This is temporary.  Jere and I have changed the file format to support non-uniform rectilinear grids
@@ -582,12 +585,12 @@ int main(int argc, char **argv) {
 		sprintf(msg, "No file specified. Using builtin potential.\n");
 		ps_log(msg);
 		//get a 1D test potential
-		potential = test_potential_2D();
+		potential = test_potential_1D();
 		
 		FILE *f = fopen("V_2d.dat", "w");
 		ps_data_write_bin(potential, f);
 		fclose(f);
-		solver = 2;
+		solver = 1;
 	} 
 	else if (2 == argc) {
 		// Interpret argument as file to process
