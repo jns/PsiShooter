@@ -289,7 +289,6 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	double dx = ps_data_dx_at(potential, 2); 
 	double dy = ps_data_dy_at(potential, 2); // 0 to 1 is wierd, maybe. 
 	double dx_dy = dx/dy; 
-
 	
 	//F
 	//intial eqn                 -->  Div*F = G * m_eff	
@@ -358,13 +357,13 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	  //Going to try filling the array with y-direction shots and then running the 2D shots based on those.
 		
 	  //initial conditions
-	  for (j=1; j<Ny; j++){
+	  for (j=1; j<Nx; j++){
 	    F[0][j] = 0;
 	    G[0][j] = 1;
 	    F[1][j] = 0;
 	    G[1][j] = 1;
 	  }
-	  for (i=1; i<Nx; i++){
+	  for (i=1; i<Ny; i++){
 	    F[i][0] = 0;
 	    G[i][0] = 1;
 	    F[i][1] = 0;
@@ -394,9 +393,13 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	      V = ps_data_value(potential, i,j); //V[i][j]
 	        
 			// Compute coupled 2D difference equation advancing in column space
-			F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
-			G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);
-
+			// if (1 == i%2 || 1 == j%2) {
+				F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
+				G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);				
+			// } else {
+			// 	F[i][j+1] = 2*F_coeff * G[i][j] * m_eff + F[i][j-1] - 2*dx_dy*(F[i][j] - F[i-1][j]); 
+			// 	G[i][j+1] = 2*G_coeff * F[i][j] * (V-E) + G[i][j-1] - 2*dx_dy*(G[i][j] - G[i-1][j]);
+			// }
 	    }
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
@@ -629,8 +632,8 @@ int main(int argc, char **argv) {
 
 	// Setup solution parameters
 	PS_SOLVE_PARAMETERS params;
-	params.energy_min = 0.05*EV_TO_ERGS; //ps_data_min_value(potential);
-	params.energy_max = 0.06*EV_TO_ERGS; //ps_data_max_value(potential);
+	params.energy_min = ps_data_min_value(potential);
+	params.energy_max = ps_data_max_value(potential);
 	params.n_iter = 100; // The number of energies to try
 	double e_step = (params.energy_max - params.energy_min)/(params.n_iter);
 		
