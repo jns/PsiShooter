@@ -280,7 +280,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	
     // This is a linked list for storing solutions
 	PS_LIST solution_list = ps_list_create();
-	
+
     ps_log("Iterate through Energy Eigenvalues to find the lowest bound state.\n");      
 	
 	// wavefunction storage.  
@@ -436,7 +436,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	    ps_list_add(solution_list, solution);
 
 	    // print a log message
-            sprintf(log_message, "\tBoundstate number %d with E=%e found, F[Nx][Ny]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[Nx][Ny], F_threshold);
+        sprintf(log_message, "\tBoundstate number %d with E=%e found, F[Nx][Ny]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[Nx][Ny], F_threshold);
 	    ps_log(log_message);
 	    //}
 
@@ -529,14 +529,16 @@ PS_DATA test_potential_2D() {
 	double barrier_width_x = 10; // * 1e-7; //nm * cm/nm , regions 1 and 3
 	double well_width_y = well_width_x; //square for now.
 	double barrier_width_y = barrier_width_x; //square for now.
+	double total_width_x = well_width_x + barrier_width_x + barrier_width_x;
+	double total_width_y = well_width_y + barrier_width_y + barrier_width_y;
 
-	int number_of_points_x = 100;
-	int number_of_points_y = 100;
+	int number_of_points_x = 200;
+	int number_of_points_y = 200;
 	
 	int xsize = number_of_points_x;
-	double xstep = (well_width_x + barrier_width_x + barrier_width_x)/((double)number_of_points_x); //total width converted to cm divided by the number of points = width per point
+	double xstep = total_width_x/((double)number_of_points_x); //total width converted to cm divided by the number of points = width per point
 	int ysize = number_of_points_y;
-	double ystep = (well_width_y + barrier_width_y + barrier_width_y)/((double)number_of_points_y); //total width converted to cm divided by the number of points = width per point
+	double ystep = total_width_y/((double)number_of_points_y); //total width converted to cm divided by the number of points = width per point
 
 	double Vb = 0.5; //*EV_TO_ERGS; // eV barrier
 	
@@ -548,19 +550,22 @@ PS_DATA test_potential_2D() {
 	int i,j;
 	int err;
 	double V;
-	double x = 0, y = 0;
+	double x = -total_width_x/2.0, y = -total_width_y/2.0;
 	
 	//Generate the potential, 
- 	for (i = 0; i < xsize; i++) {	
-		y = 0;
-		for (j = 0; j < ysize; j++) {	
+ 	for (i = 0; i < ysize; i++) {	
+		y = -total_width_y/2.0;
+		for (j = 0; j < xsize; j++) {	
 
-			if( (x > barrier_width_x && x < (barrier_width_x+well_width_x)) && 
-			    (y > barrier_width_y && y < (barrier_width_y+well_width_y)) ) {				
-				err = ps_data_set_value_at_row_column(potential, 0, j, i); //in the well			
-			} else {
-				err = ps_data_set_value_at_row_column(potential, Vb, j, i);	//in the barriers			
-			} 
+			// if( (x > barrier_width_x && x < (barrier_width_x+well_width_x)) && 
+			//     (y > barrier_width_y && y < (barrier_width_y+well_width_y)) ) {				
+			// 	err = ps_data_set_value_at_row_column(potential, 0, j, i); //in the well			
+			// } else {
+			// 	err = ps_data_set_value_at_row_column(potential, Vb, j, i);	//in the barriers			
+			// } 
+
+			V = Vb/(total_width_x*total_width_x)*(x*x + y*y);
+			ps_data_set_value_at_row_column(potential, V, j, i);
 			
 			if (0 == i) {
 				ps_data_set_y_value_at(potential, j, y);				
@@ -569,7 +574,6 @@ PS_DATA test_potential_2D() {
 			y += ystep;
 		}
 		x += xstep;
-		printf("\n");
 		ps_data_set_x_value_at(potential, i, x);
 	}	
 	return potential;	
