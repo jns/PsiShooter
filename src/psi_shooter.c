@@ -365,17 +365,22 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	  //Going to try filling the array with y-direction shots and then running the 2D shots based on those.
 		
 	  //initial conditions
-	  for (j=1; j<Nx; j++){
+	  for (j=0; j<Nx; j++){
 	    F[0][j] = 0;
 	    G[0][j] = 1;
 	    F[1][j] = 0;
 	    G[1][j] = 1;
 	  }
-	  for (i=1; i<Ny; i++){
+	  for (i=0; i<Ny; i++){
 	    F[i][0] = 0;
 	    G[i][0] = 1;
 	    F[i][1] = 0;
 	    G[i][1] = 1;
+
+	    F[i][Nx-1] = 0;
+	    G[i][Nx-1] = 1;
+	    F[i][Nx-2] = 0;
+	    G[i][Nx-2] = 1;	
 	  }
 
 	  //1D shots. --Rolled into the next loop.
@@ -396,23 +401,28 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	    }*/
 	  
         
-	  for(i=1; i<Nx; i++) {
-	    for(j=0; j<Ny-1; j++) {
-	      V = ps_data_value(potential, i,j); //V[i][j]
-	        
-			// Compute coupled 2D difference equation advancing in column space
-			// if (1 == i%2 || 1 == j%2) {
+	  for(i=1; i<Ny; i++) {
+		if (1 == i%2) {
+		    for(j=0; j<Nx-1; j++) {
+		     	V = ps_data_value(potential, i,j); //V[i][j]
+
+				// Compute coupled 2D difference equation advancing in column space
 				F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
 				G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);				
-			// } else {
-			// 	F[i][j+1] = 2*F_coeff * G[i][j] * m_eff + F[i][j-1] - 2*dx_dy*(F[i][j] - F[i-1][j]); 
-			// 	G[i][j+1] = 2*G_coeff * F[i][j] * (V-E) + G[i][j-1] - 2*dx_dy*(G[i][j] - G[i-1][j]);
-			// }
-			if (1 == i) {
-				F[i-1][j] = F[i][j];
-				G[i-1][j] = G[i][j];
+
+				if (1 == i) {
+					// F[i-1][j] = F[i][j];
+					// G[i-1][j] = G[i][j];
+				}
+		    }			
+		} else {
+		    for(j=Nx-1; j>0; j--) {
+		     	V = ps_data_value(potential, i,j); //V[i][j]
+				// Compute coupled 2D difference equation retreating in column space
+				F[i][j-1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
+				G[i][j-1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);				
 			}
-	    }
+		}
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
 	  //might be useful during debugging.
