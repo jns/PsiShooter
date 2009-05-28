@@ -402,27 +402,37 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	  
         
 	  for(i=1; i<Ny; i++) {
-		if (1 == i%2) {
+		// if (1 == i%2) {
 		    for(j=0; j<Nx-1; j++) {
 		     	V = ps_data_value(potential, i,j); //V[i][j]
 
 				// Compute coupled 2D difference equation advancing in column space
-				F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
-				G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);				
+				// F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
+				// G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);				
 
-				if (1 == i) {
-					// F[i-1][j] = F[i][j];
-					// G[i-1][j] = G[i][j];
-				}
+				// These are the equations (F[x+1,y] - F[x,y]) + (F[x+1,y] - F[x+1, y-1])
+				F[i][j+1] = (F_coeff * G[i][j] * m_eff + F[i][j] + dx_dy*F[i-1][j+1])/(1+dx_dy); 
+				G[i][j+1] = (G_coeff * F[i][j] * (V-E) + G[i][j] + dx_dy*G[i-1][j+1])/(1+dx_dy);				
+				
+				// if (1 == i) {
+				// 	F[i-1][j] = F[i][j];
+				// 	G[i-1][j] = G[i][j];
+				// }
+
 		    }			
-		} else {
-		    for(j=Nx-1; j>0; j--) {
-		     	V = ps_data_value(potential, i,j); //V[i][j]
-				// Compute coupled 2D difference equation retreating in column space
-				F[i][j-1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
-				G[i][j-1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);				
-			}
-		}
+		// } else {
+		//     for(j=Nx-1; j>0; j--) {
+		//      	V = ps_data_value(potential, i,j); //V[i][j]
+		// // 		// Compute coupled 2D difference equation retreating in column space
+		// 		// F[i][j-1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
+		// 		// G[i][j-1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);				
+		// 	F[i][j-1] = (F_coeff * G[i][j] * m_eff + F[i][j] + dx_dy*F[i-1][j-1])/(1+dx_dy); 
+		// 	G[i][j-1] = (G_coeff * F[i][j] * (V-E) + G[i][j] + dx_dy*G[i-1][j-1])/(1+dx_dy);				
+		// 	}
+		// }
+		// Set initial conditions for next row
+		// F[i+1][j] = F[i][j];
+		// G[i+1][j] = G[i][j];
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
 	  //might be useful during debugging.
@@ -565,12 +575,13 @@ PS_DATA test_potential_2D() {
 	int err;
 	double V;
 	double x = -total_width_x/2.0, y = -total_width_y/2.0;
-	
+	// double x = 0,y=0;
 	//Generate the potential, 
  	for (i = 0; i < ysize; i++) {	
 		y = -total_width_y/2.0;
+		// y = 0;
 		for (j = 0; j < xsize; j++) {	
-
+			
 			// if( (x > barrier_width_x && x < (barrier_width_x+well_width_x)) && 
 			//     (y > barrier_width_y && y < (barrier_width_y+well_width_y)) ) {				
 			// 	err = ps_data_set_value_at_row_column(potential, 0, j, i); //in the well			
