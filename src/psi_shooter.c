@@ -292,7 +292,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	double dx = ps_data_dx_at(potential, 2); 
 	double dy = ps_data_dy_at(potential, 2); // 0 to 1 is wierd, maybe. 
 	double dx_dy = dx/dy; 
-	
+	double dy_dx = dy/dx;
 	//F
 	//intial eqn                 -->  Div*F = G * m_eff	
 	//convert to finite diff eqn -->  (F[x+dx,y]-F[x,y])/dx + (F[x,y]-F[x,y-dy])/dy = G[x,y]M[x,y]	
@@ -386,29 +386,14 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 
 	  for(i=1; i<Ny-1; i++) {
 
-		if (1 == i%2) {
-		    for(j=Nx-1; 0<j; j--) {
-		     	V = ps_data_value(potential, i,j); //V[i][j]
-
-				// Compute coupled 2D difference equation retreating in column space
-				F[i][j-1] = (0.5 * dx * m_eff * (G[i][j] + G[i-1][j-1])  + F[i][j] + dx_dy*F[i-1][j-1])/(1+dx_dy); 
-				G[i][j-1] = (G_COEFF * (V-E) * dx * (F[i][j] + F[i-1][j-1]) + G[i][j] + dx_dy*G[i-1][j-1])/(1+dx_dy);				
-		    }	
-		} else {
-		    for(j=0; j<Nx-1; j++) {
-		     	V = ps_data_value(potential, i,j); //V[i][j]
-					
-				// Compute coupled 2D difference equation advancing in column space
-				F[i][j+1] = (0.5 * dx * m_eff * (G[i][j] + G[i-1][j+1])  + F[i][j] + dx_dy*F[i-1][j+1])/(1+dx_dy); 
-				G[i][j+1] = (G_COEFF * (V-E) * dx * (F[i][j] + F[i-1][j+1]) + G[i][j] + dx_dy*G[i-1][j+1])/(1+dx_dy);				
-		    }				
-		}
+	    for(j=1; j<Nx-1; j++) {
+	     	V = ps_data_value(potential, i,j); //V[i][j]
+				
+			// Compute coupled 2D difference equation advancing in column space
+			F[i+1][j] = 2*dy*m_eff*G[i][j] + F[i-1][j] - dy_dx*F[i][j+1] + dy_dx*F[i][j-1]; 
+			G[i+1][j] = 4*dy*G_COEFF*(V-E)*F[i][j] + G[i-1][j] - dy_dx*G[i][j+1] + dy_dx*G[i][j-1]; 
+	    }				
 	
-			
-		// // Take a forward shot in Y to initialize next row (unless it's the last row)
-		if (Ny > i + 1) {
-			F[i+1][j] = dy * m_eff * G[i][j] + F[i	][j];			
-		}
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
 	  //might be useful during debugging.
@@ -532,8 +517,8 @@ PS_DATA test_potential_2D() {
 	double total_width_x = well_width_x + barrier_width_x + barrier_width_x;
 	double total_width_y = well_width_y + barrier_width_y + barrier_width_y;
 
-	int number_of_points_x = 300;
-	int number_of_points_y = 300;
+	int number_of_points_x = 100;
+	int number_of_points_y = 100;
 	
 	int xsize = number_of_points_x;
 	double xstep = total_width_x/((double)number_of_points_x); //total width converted to cm divided by the number of points = width per point
