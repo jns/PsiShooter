@@ -368,20 +368,20 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	  for (j=0; j<Nx; j++){
 	    F[0][j] = 0;
 	    G[0][j] = 1;
-		F[1][j] = 0;
+		F[1][j] = 1;
 		G[1][j] = 1;
 	  }
 	
-	for (i=0; i<Ny; i++) {
+	for (i=1; i<Ny; i++) {
 	    F[i][0] = 0;
 	    G[i][0] = 1;
-		F[i][1] = 0;
+		F[i][1] = 1;
 		G[i][1] = 1;		
 
-	    F[i][Nx-1] = 0;
-	    G[i][Nx-1] = 1;
-		F[i][Nx-1] = 0;
-		G[i][Nx-1] = 1;		
+		// 	    F[i][Nx-1] = 0;
+		// 	    G[i][Nx-1] = 1;
+		// F[i][Nx-2] = 1;
+		// G[i][Nx-2] = 1;		
 	}
 
 	  for(i=1; i<Ny-1; i++) {
@@ -390,9 +390,15 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	     	V = ps_data_value(potential, i,j); //V[i][j]
 				
 			// Compute coupled 2D difference equation advancing in column space
-			F[i+1][j] = dy*m_eff*G[i][j] + F[i][j] - 0.5*dy_dx*(F[i][j+1] - F[i][j-1]); 
-			G[i+1][j] = 2*dy*G_COEFF*(V-E)*F[i][j] + G[i][j] - 0.5*dy_dx*(G[i][j+1] - G[i][j-1]); 
-	    }				
+			// Fwd/Bkwd difference equation in i(y) and Fwd only in x(j) 
+			F[i+1][j] = 2*dy*m_eff*G[i][j] + F[i-1][j] - 2*dy_dx*(F[i][j+1] - F[i][j]); 
+			G[i+1][j] = 4*dy*G_COEFF*(V-E)*F[i][j] + G[i-1][j] - 2*dy_dx*(G[i][j+1] - G[i][j]); 								
+
+	    }
+	
+		// At end of row, take Fwd in i(y) and j(x) to get last col in next row.
+		F[i+1][j] = (0.5*dx*m_eff*(G[i][j] + G[i+1][j-1]) + F[i+1][j-1] + dx_dy*F[i][j])/(1+dx_dy); 
+		G[i+1][j] = (dx*G_COEFF*(V-E)*(F[i][j] + F[i+1][j-1]) + G[i+1][j-1] + dx_dy*G[i][j])/(1+dx_dy);
 	
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
