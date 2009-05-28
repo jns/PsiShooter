@@ -368,71 +368,47 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	  for (j=0; j<Nx; j++){
 	    F[0][j] = 0;
 	    G[0][j] = 1;
-	    F[1][j] = 0;
-	    G[1][j] = 1;
+		F[1][j] = 0;
+		G[1][j] = 1;
 	  }
-	  for (i=0; i<Ny; i++){
+	
+	for (i=0; i<Ny; i++) {
 	    F[i][0] = 0;
 	    G[i][0] = 1;
-	    F[i][1] = 0;
-	    G[i][1] = 1;
+		F[i][1] = 0;
+		G[i][1] = 1;		
 
 	    F[i][Nx-1] = 0;
 	    G[i][Nx-1] = 1;
-	    F[i][Nx-2] = 0;
-	    G[i][Nx-2] = 1;	
-	  }
+		F[i][Nx-1] = 0;
+		G[i][Nx-1] = 1;		
+	}
 
-	  //1D shots. --Rolled into the next loop.
-	  /*	  for(i=1; i<Nx-1; i++){
-	    for(j=1; j<Ny-1; j++){
-	      V = ps_data_value(potential, i,j);//V[i][j]
-	      //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
-	      //Makes the upper solutions stable and oscillation free.
-	      //    if (i%2==1){
-		F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j]; 
-		G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j];
-		//     }
-	      //   if (i%2==0){
-	      //	F[i][j+1] = 2*F_coeff * G[i][j] * m_eff + F[i][j-1]; 
-	      //	G[i][j+1] = 2*G_coeff * F[i][j] * (V-E) + G[j][j-1];
-	      //      }
-	    }	    
-	    }*/
-	  
-        
-	  for(i=1; i<Ny; i++) {
-		// if (1 == i%2) {
-		    for(j=0; j<Nx-1; j++) {
+	  for(i=1; i<Ny-1; i++) {
+
+		if (1 == i%2) {
+		    for(j=Nx-1; 0<j; j--) {
 		     	V = ps_data_value(potential, i,j); //V[i][j]
 
+				// Compute coupled 2D difference equation retreating in column space
+				F[i][j-1] = (0.5 * dx * m_eff * (G[i][j] + G[i-1][j-1])  + F[i][j] + dx_dy*F[i-1][j-1])/(1+dx_dy); 
+				G[i][j-1] = (G_COEFF * (V-E) * dx * (F[i][j] + F[i-1][j-1]) + G[i][j] + dx_dy*G[i-1][j-1])/(1+dx_dy);				
+		    }	
+		} else {
+		    for(j=0; j<Nx-1; j++) {
+		     	V = ps_data_value(potential, i,j); //V[i][j]
+					
 				// Compute coupled 2D difference equation advancing in column space
-				// F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
-				// G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);				
-
-				// These are the equations (F[x+1,y] - F[x,y]) + (F[x+1,y] - F[x+1, y-1])
-				F[i][j+1] = (F_coeff * G[i][j] * m_eff + F[i][j] + dx_dy*F[i-1][j+1])/(1+dx_dy); 
-				G[i][j+1] = (G_coeff * F[i][j] * (V-E) + G[i][j] + dx_dy*G[i-1][j+1])/(1+dx_dy);				
-				
-				// if (1 == i) {
-				// 	F[i-1][j] = F[i][j];
-				// 	G[i-1][j] = G[i][j];
-				// }
-
-		    }			
-		// } else {
-		//     for(j=Nx-1; j>0; j--) {
-		//      	V = ps_data_value(potential, i,j); //V[i][j]
-		// // 		// Compute coupled 2D difference equation retreating in column space
-		// 		// F[i][j-1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
-		// 		// G[i][j-1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);				
-		// 	F[i][j-1] = (F_coeff * G[i][j] * m_eff + F[i][j] + dx_dy*F[i-1][j-1])/(1+dx_dy); 
-		// 	G[i][j-1] = (G_coeff * F[i][j] * (V-E) + G[i][j] + dx_dy*G[i-1][j-1])/(1+dx_dy);				
-		// 	}
-		// }
-		// Set initial conditions for next row
-		// F[i+1][j] = F[i][j];
-		// G[i+1][j] = G[i][j];
+				F[i][j+1] = (0.5 * dx * m_eff * (G[i][j] + G[i-1][j+1])  + F[i][j] + dx_dy*F[i-1][j+1])/(1+dx_dy); 
+				G[i][j+1] = (G_COEFF * (V-E) * dx * (F[i][j] + F[i-1][j+1]) + G[i][j] + dx_dy*G[i-1][j+1])/(1+dx_dy);				
+		    }				
+		}
+	
+			
+		// // Take a forward shot in Y to initialize next row (unless it's the last row)
+		if (Ny > i + 1) {
+			F[i+1][j] = dy * m_eff * G[i][j] + F[i	][j];			
+		}
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
 	  //might be useful during debugging.
@@ -556,8 +532,8 @@ PS_DATA test_potential_2D() {
 	double total_width_x = well_width_x + barrier_width_x + barrier_width_x;
 	double total_width_y = well_width_y + barrier_width_y + barrier_width_y;
 
-	int number_of_points_x = 200;
-	int number_of_points_y = 200;
+	int number_of_points_x = 300;
+	int number_of_points_y = 300;
 	
 	int xsize = number_of_points_x;
 	double xstep = total_width_x/((double)number_of_points_x); //total width converted to cm divided by the number of points = width per point
@@ -671,7 +647,7 @@ int main(int argc, char **argv) {
 	PS_SOLVE_PARAMETERS params;
 	params.energy_min = ps_data_min_value(potential);
 	params.energy_max = ps_data_max_value(potential);
-	params.n_iter = 100; // The number of energies to try
+	params.n_iter = 500; // The number of energies to try
 	double e_step = (params.energy_max - params.energy_min)/(params.n_iter);
 		
 	sprintf(msg,"Testing energies from %g to %g in %g increments\n",params.energy_min/EV_TO_ERGS,params.energy_max/EV_TO_ERGS,e_step/EV_TO_ERGS);
