@@ -390,8 +390,8 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	     	V = ps_data_value(potential, i,j); //V[i][j]
 				
 			// Compute coupled 2D difference equation advancing in column space
-			F[i+1][j] = 2*dy*m_eff*G[i][j] + F[i-1][j] - dy_dx*F[i][j+1] + dy_dx*F[i][j-1]; 
-			G[i+1][j] = 4*dy*G_COEFF*(V-E)*F[i][j] + G[i-1][j] - dy_dx*G[i][j+1] + dy_dx*G[i][j-1]; 
+			F[i+1][j] = dy*m_eff*G[i][j] + F[i][j] - 0.5*dy_dx*(F[i][j+1] - F[i][j-1]); 
+			G[i+1][j] = 2*dy*G_COEFF*(V-E)*F[i][j] + G[i][j] - 0.5*dy_dx*(G[i][j+1] - G[i][j-1]); 
 	    }				
 	
 	  }
