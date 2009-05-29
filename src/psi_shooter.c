@@ -380,20 +380,19 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 			
 			// Compute coupled 2D difference equation advancing in column space
 			if (0 == j) {
-				// Fwd only in x and y
+				// Fwd only in x. Fwd/Bkwd in y
 				F[i+1][j] = 2*dy*m_eff*G[i][j] + F[i-1][j] - 2*dy_dx*(F[i][j+1] - F[i][j]); 
-				G[i+1][j] = 4*dy*G_COEFF*(V-E)*F[i][j] + G[i-1][j] - 2*dy_dx*(G[i][j+1] - G[i][j]); 												
+				G[i+1][j] = 2*dy*G_COEFF*(V-E)*F[i][j] + G[i][j] - dy_dx*(G[i][j+1] - G[i][j]); 												
 			} else {
-				// Fwd/Bkwd difference equation in i(y) and Fwd/Bkwd in x(j) 
+				// Fwd/Bkwd in x. Fwd only in y
 				F[i+1][j] = 2*dy*m_eff*G[i][j] + F[i-1][j] - dy_dx*(F[i][j+1] - F[i][j-1]); 
-				G[i+1][j] = 4*dy*G_COEFF*(V-E)*F[i][j] + G[i-1][j] - dy_dx*(G[i][j+1] - G[i][j-1]); 												
+				// Fwd difference equation in i(y) and Fwd/Bkwd in x(j) 
+				G[i+1][j] = 2*dy*G_COEFF*(V-E)*F[i][j] + G[i][j] - 0.5*dy_dx*(G[i][j+1] - G[i][j-1]); 												
 			}
 
 	    }
-		// At end of row Compute F[i+1][j+1] using slope of F (which is G)
-		// Compute slope in x direction only of F directly for G[i+1][j]
+		// For last point, Compute slope in x direction for F and G directly
 		G[i+1][j] = 2*G[i+1][j-1] - G[i+1][j-2];
-		// Apply the slope 
 		F[i+1][j] = 2*F[i+1][j-1] - F[i+1][j-2];
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
