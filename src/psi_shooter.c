@@ -375,25 +375,29 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	  }
 	
 	  for(i=1; i<Ny-1; i++) {
-	    for(j=0; j<Nx-1; j++) {
-	     	V = ps_data_value(potential, i,j); //V[i][j]
-			
-			// Compute coupled 2D difference equation advancing in column space
-			if (0 == j) {
-				// Fwd only in x. Fwd/Bkwd in y
-				F[i+1][j] = dy*m_eff*G[i][j] + F[i][j] - dy_dx*(F[i][j+1] - F[i][j]); 
-				G[i+1][j] = 2*dy*G_COEFF*(V-E)*F[i][j] + G[i][j] - dy_dx*(G[i][j+1] - G[i][j]); 												
-			} else {
-				// Fwd/Bkwd in x. Fwd only in y
-				F[i+1][j] = dy*m_eff*G[i][j] + F[i][j] - 0.5*dy_dx*(F[i][j+1] - F[i][j-1]); 
-				// Fwd difference equation in i(y) and Fwd/Bkwd in x(j) 
-				G[i+1][j] = 2*dy*G_COEFF*(V-E)*F[i][j] + G[i][j] - 0.5*dy_dx*(G[i][j+1] - G[i][j-1]); 												
-			}
 
-	    }
-		// For last point, Compute slope in x direction for F and G directly
-		G[i+1][j] = 2*G[i+1][j-1] - G[i+1][j-2];
-		F[i+1][j] = 2*F[i+1][j-1] - F[i+1][j-2];
+		    for(j=1; j<Nx-1; j++) {
+		     	V = ps_data_value(potential, i,j); //V[i][j]
+
+				// Compute coupled 2D difference equation advancing in column space
+				// if (0 == j) {
+				// 	// Fwd only in x and in y
+				// 	F[i+1][j] = dy*m_eff*G[i][j] + F[i][j] - dy_dx*(F[i][j+1] - F[i][j]); 
+				// 	G[i+1][j] = 2*dy*G_COEFF*(V-E)*F[i][j] + G[i][j] - dy_dx*(G[i][j+1] - G[i][j]); 																	
+				// } else {
+					// Fwd/Bkwd in x. Fwd only in y
+					F[i+1][j] = dy*m_eff*G[i][j] + F[i][j] - dy_dx*(F[i][j+1] - F[i][j]); 
+					G[i+1][j] = 2*dy*G_COEFF*(V-E)*F[i][j] + G[i][j] - dy_dx*(G[i][j+1] - G[i][j]); 												
+				// }
+
+		    }
+			// For First and last point, Compute slope in x direction for F and G directly
+			G[i+1][j] = 2*G[i+1][j-1] - G[i+1][j-2];
+			F[i+1][j] = 2*F[i+1][j-1] - F[i+1][j-2];
+
+			G[i+1][0] = 2*G[i+1][1] - G[i+1][2];
+			F[i+1][0] = 2*F[i+1][1] - F[i+1][2];
+			
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
 	  //might be useful during debugging.
@@ -640,7 +644,7 @@ int main(int argc, char **argv) {
 	PS_SOLVE_PARAMETERS params;
 	params.energy_min = ps_data_min_value(potential);
 	params.energy_max = ps_data_max_value(potential);
-	params.n_iter = 500; // The number of energies to try
+	params.n_iter = 50; // The number of energies to try
 	double e_step = (params.energy_max - params.energy_min)/(params.n_iter);
 		
 	sprintf(msg,"Testing energies from %g to %g in %g increments\n",params.energy_min/EV_TO_ERGS,params.energy_max/EV_TO_ERGS,e_step/EV_TO_ERGS);
