@@ -374,19 +374,20 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 		G[1][j] = 1;
 	  }
 	
-	for (i=1; i<Ny; i++) {
-	    F[i][0] = 1;
-	    G[i][0] = 1;
-	}
-
 	  for(i=1; i<Ny-1; i++) {
-	    for(j=1; j<Nx-1; j++) {
+	    for(j=0; j<Nx-1; j++) {
 	     	V = ps_data_value(potential, i,j); //V[i][j]
-				
+			
 			// Compute coupled 2D difference equation advancing in column space
-			// Fwd/Bkwd difference equation in i(y) and Fwd/Bkwd only in x(j) 
-			F[i+1][j] = 2*dy*m_eff*G[i][j] + F[i-1][j] - dy_dx*(F[i][j+1] - F[i][j-1]); 
-			G[i+1][j] = 4*dy*G_COEFF*(V-E)*F[i][j] + G[i-1][j] - dy_dx*(G[i][j+1] - G[i][j-1]); 								
+			if (0 == j) {
+				// Fwd only in x and y
+				F[i+1][j] = 2*dy*m_eff*G[i][j] + F[i-1][j] - 2*dy_dx*(F[i][j+1] - F[i][j]); 
+				G[i+1][j] = 4*dy*G_COEFF*(V-E)*F[i][j] + G[i-1][j] - 2*dy_dx*(G[i][j+1] - G[i][j]); 												
+			} else {
+				// Fwd/Bkwd difference equation in i(y) and Fwd/Bkwd in x(j) 
+				F[i+1][j] = 2*dy*m_eff*G[i][j] + F[i-1][j] - dy_dx*(F[i][j+1] - F[i][j-1]); 
+				G[i+1][j] = 4*dy*G_COEFF*(V-E)*F[i][j] + G[i-1][j] - dy_dx*(G[i][j+1] - G[i][j-1]); 												
+			}
 
 	    }
 		// At end of row Compute F[i+1][j+1] using slope of F (which is G)
