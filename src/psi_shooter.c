@@ -19,6 +19,8 @@ void ps_log(char *msg) {
 	fprintf(stdout, msg);
 }
 
+PS_LIST g_solutions;
+
 //
 // Solve for the bound energies given by the potential. 
 // energies is a buffer of energies to test.
@@ -373,33 +375,25 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	  }
 	
 	for (i=1; i<Ny; i++) {
-	    F[i][0] = 0;
+	    F[i][0] = 1;
 	    G[i][0] = 1;
-		F[i][1] = 1;
-		G[i][1] = 1;		
-
-		// 	    F[i][Nx-1] = 0;
-		// 	    G[i][Nx-1] = 1;
-		// F[i][Nx-2] = 1;
-		// G[i][Nx-2] = 1;		
 	}
 
 	  for(i=1; i<Ny-1; i++) {
-
 	    for(j=1; j<Nx-1; j++) {
 	     	V = ps_data_value(potential, i,j); //V[i][j]
 				
 			// Compute coupled 2D difference equation advancing in column space
-			// Fwd/Bkwd difference equation in i(y) and Fwd only in x(j) 
-			F[i+1][j] = 2*dy*m_eff*G[i][j] + F[i-1][j] - 2*dy_dx*(F[i][j+1] - F[i][j]); 
-			G[i+1][j] = 4*dy*G_COEFF*(V-E)*F[i][j] + G[i-1][j] - 2*dy_dx*(G[i][j+1] - G[i][j]); 								
+			// Fwd/Bkwd difference equation in i(y) and Fwd/Bkwd only in x(j) 
+			F[i+1][j] = 2*dy*m_eff*G[i][j] + F[i-1][j] - dy_dx*(F[i][j+1] - F[i][j-1]); 
+			G[i+1][j] = 4*dy*G_COEFF*(V-E)*F[i][j] + G[i-1][j] - dy_dx*(G[i][j+1] - G[i][j-1]); 								
 
 	    }
-	
-		// At end of row, take Fwd in i(y) and j(x) to get last col in next row.
-		F[i+1][j] = (0.5*dx*m_eff*(G[i][j] + G[i+1][j-1]) + F[i+1][j-1] + dx_dy*F[i][j])/(1+dx_dy); 
-		G[i+1][j] = (dx*G_COEFF*(V-E)*(F[i][j] + F[i+1][j-1]) + G[i+1][j-1] + dx_dy*G[i][j])/(1+dx_dy);
-	
+		// At end of row Compute F[i+1][j+1] using slope of F (which is G)
+		// Compute slope in x direction only of F directly for G[i+1][j]
+		G[i+1][j] = 2*G[i+1][j-1] - G[i+1][j-2];
+		// Apply the slope 
+		F[i+1][j] = 2*F[i+1][j-1] - F[i+1][j-2];
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
 	  //might be useful during debugging.
@@ -426,6 +420,14 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	    // Add the solution to the list of bound states
 	    ps_list_add(solution_list, solution);
 
+		// Save the g solutions
+		PS_DATA g = ps_data_copy(potential);
+		ps_data_set_data(g, G);
+		PS_SOLUTION *gsolution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
+		gsolution->energy = E;
+		gsolution->wavefunction = g;
+		ps_list_add(g_solutions, gsolution);
+		
 	    // print a log message
         sprintf(log_message, "\tBoundstate number %d with E=%e found, F[Nx][Ny]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[Nx][Ny], F_threshold);
 	    ps_log(log_message);
@@ -646,7 +648,8 @@ int main(int argc, char **argv) {
 	
 	// Create a list for solutions
 	PS_LIST solutions = ps_list_create();
-
+	g_solutions = ps_list_create();
+	
 	  // 1st pass coarse Solver
 	if (1 == solver) {
 		// 1d solver with coarse/fine pass
@@ -695,6 +698,15 @@ int main(int argc, char **argv) {
 	fclose(bsfile);
 	fclose(efile);
 
+	FILE *gfile = fopen("G.dat", "w");
+	s = ps_list_front(g_solutions);
+	while (s != NULL) {
+		ps_data_write_bin(s->wavefunction, gfile);
+		s = ps_list_next(g_solutions);
+	}
+	fclose(gfile);
+	ps_list_destroy_all(g_solutions);
+	
 	//clean up
 	ps_data_destroy(potential);
 	ps_list_destroy_all(solutions);
