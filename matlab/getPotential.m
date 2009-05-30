@@ -70,6 +70,8 @@ layerData(1).mEff = 1;
 
 %The second values of things are either documented or the correction based
 %on the alloy percentage.
+layerList = [];
+
 layerList(1).name = 'C (diamond)';  layerList(1).eg=5.48;
 layerList(1).mEff(1) = 1.4;         layerList(1).mEff(2) = 0.36; %longitudinal and transferse
 layerList(1).epsRel = 5.7;
@@ -87,9 +89,9 @@ layerList(7).name = '*GaN';          layerList(7).eg = 3.4;
 layerList(7).epsRel = [];           layerList(7).mEff = [];
 layerList(8).name = '*GaP';          layerList(8).eg = 2.26;
 layerList(8).epsRel = [];           layerList(8).mEff = [];
-layerList(9).name = 'GaAs';         layerList(9).eg = 1.424;
+layerList(9).name = 'GaAs';         layerList(9).eg = 0;%1.424;
 layerList(9).epsRel = 12.5;         layerList(9).mEff = 0.067;
-layerList(10).name = 'AlGaAs';      layerList(10).eg = 2.16;
+layerList(10).name = 'AlGaAs';      layerList(10).eg = 1.424-1.311;%1.611;%2.16;
 layerList(10).eg(2)=0.1*(0.36-2.16);layerList(10).epsRel(1) = 12.9;
 layerList(10).epsRel(2) = 2.84;     layerList(10).mEff(1) = 0.063;
 layerList(10).mEff(2) = 0.083;
@@ -99,10 +101,6 @@ layerList(12).name ='Si3N4';        layerList(12).eg = 5.30;
 layerList(12).epsRel = 7.5;          layerList(12).mEff = [];
 layerList(13).name ='H';            layerList(13).eg = 0;
 layerList(13).epsRel = 1;           layerList(13).mEff = 1;
-layerList(14).name = 'Al_15_Ga_85_As';      layerList(10).eg = 1.611;
-layerList(14).eg(2)=0.1*(0.36-2.16);layerList(10).epsRel(1) = 12.9;
-layerList(14).epsRel(2) = 2.84;     layerList(10).mEff(1) = 0.063;
-layerList(14).mEff(2) = 0.083;
 
 %Until this table is properly filled out, taking the potentials for the
 %array to be the bandgap.
@@ -447,9 +445,9 @@ elseif geometrySelect_index == 1 %circular symmetry
     for indX = 1:length(meshGen.X)
         for indY = 1:length(meshGen.Y)
             for index = 1:length(layerData)
-                if sqrt(meshGen.X(indX)^2+meshGen.Y(indY)^2) ...
-                        <= thickness(index)
-                    if indX == 46 && indY == 94
+                radialPosition = sqrt(meshGen.X(indX)^2+meshGen.Y(indY)^2);
+                if radialPosition <= thickness(index)
+                    if radialPosition < 50
                         'BREAKPOINT';
                     end
                     %This will keep changing it until it is the right one.
