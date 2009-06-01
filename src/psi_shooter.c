@@ -378,26 +378,23 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 
 		    for(j=1; j<Nx-1; j++) {
 		     	V = ps_data_value(potential, i,j); //V[i][j]
-
-				// Compute coupled 2D difference equation advancing in column space
-				// if (0 == j) {
-				// 	// Fwd only in x and in y
-				// 	F[i+1][j] = dy*m_eff*G[i][j] + F[i][j] - dy_dx*(F[i][j+1] - F[i][j]); 
-				// 	G[i+1][j] = 2*dy*G_COEFF*(V-E)*F[i][j] + G[i][j] - dy_dx*(G[i][j+1] - G[i][j]); 																	
-				// } else {
-					// Fwd/Bkwd in x. Fwd only in y
-					F[i+1][j] = dy*m_eff*G[i][j] + F[i][j] - dy_dx*(F[i][j+1] - F[i][j]); 
-					G[i+1][j] = 2*dy*G_COEFF*(V-E)*F[i][j] + G[i][j] - dy_dx*(G[i][j+1] - G[i][j]); 												
-				// }
-
+				// 5-point stencil in X and Y
+				F[i+1][j] = dx*dx*m_eff*G[i][j]  - F[i][j+1] - F[i][j-1] - F[i-1][j] + 4*F[i][j];
+				G[i+1][j] = 2*dx*dx*G_COEFF*(V-E)*F[i][j] - G[i][j+1] - G[i][j-1] - G[i-1][j] + 4*G[i][j];
 		    }
 			// For First and last point, Compute slope in x direction for F and G directly
-			G[i+1][j] = 2*G[i+1][j-1] - G[i+1][j-2];
-			F[i+1][j] = 2*F[i+1][j-1] - F[i+1][j-2];
 
-			G[i+1][0] = 2*G[i+1][1] - G[i+1][2];
-			F[i+1][0] = 2*F[i+1][1] - F[i+1][2];
-			
+			// F[x+3] = F[x] + 3h*F'[x] + (3h)^2/2!*F''[x]  (Taylor Expansion)
+			// F'[x] = 1/(12*h)*[-F[x+2] + 8*F[x+1] - 8*F[x-1] + F[x-2]]  (5-point stencil)
+			// F''[x] = 1/(12*h*h)*[-F[x+2] + 16*F[x+1] -30*F[x] +16*F[x+1] - F[x-2]] (5-point stencil)
+			G[i+1][j] = G[i+1][j-3] + 0.25*(-G[i+1][j-1] + 8*G[i+1][j-2] - 8*G[i+1][j-4] + G[i+1][j-5]) + 9.0/24.0*(-G[i+1][j-5] + 16*G[i+1][j-4] - 30*G[i+1][j-3] + 16*G[i+1][j-2] - G[i+1][j-1]);
+			F[i+1][j] = F[i+1][j-3] + 0.25*(-F[i+1][j-1] + 8*F[i+1][j-2] - 8*F[i+1][j-4] + F[i+1][j-5]) + 9.0/24.0*(-F[i+1][j-5] + 16*F[i+1][j-4] - 30*F[i+1][j-3] + 16*F[i+1][j-2] - F[i+1][j-1]);			
+
+			// F[x-3] = F[x] - 3h*F'[x] + (3h)^2/2!*F''[x]  (Taylor Expansion)
+			// F'[x] = 1/(12*h)*[-F[x+2] + 8*F[x+1] - 8*F[x-1] + F[x-2]]
+			// F''[x] = 1/(12*h*h)*[-F[x+2] + 16*F[x+1] -30*F[x] +16*F[x+1] - F[x-2]]
+			G[i+1][0] = G[i+1][3] - 0.25*(-G[i+1][5] + 8*G[i+1][4] - 8*G[i+1][2] + G[i+1][1]) + 9.0/24.0*(-G[i+1][5] + 16*G[i+1][4] - 30*G[i+1][3] + 16*G[i+1][2] - G[i+1][1]);
+			F[i+1][0] = F[i+1][3] - 0.25*(-F[i+1][5] + 8*F[i+1][4] - 8*F[i+1][2] + F[i+1][1]) + 9.0/24.0*(-F[i+1][5] + 16*F[i+1][4] - 30*F[i+1][3] + 16*F[i+1][2] - F[i+1][1]);			
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
 	  //might be useful during debugging.
