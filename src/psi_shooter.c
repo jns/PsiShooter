@@ -19,6 +19,8 @@ void ps_log(char *msg) {
 	fprintf(stdout, msg);
 }
 
+PS_LIST g_solutions;
+
 //
 // Solve for the bound energies given by the potential. 
 // energies is a buffer of energies to test.
@@ -292,7 +294,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	double dx = ps_data_dx_at(potential, 2); 
 	double dy = ps_data_dy_at(potential, 2); // 0 to 1 is wierd, maybe. 
 	double dx_dy = dx/dy; 
-	
+	double dy_dx = dy/dx;
 	//F
 	//intial eqn                 -->  Div*F = G * m_eff	
 	//convert to finite diff eqn -->  (F[x+dx,y]-F[x,y])/dx + (F[x,y]-F[x,y-dy])/dy = G[x,y]M[x,y]	
@@ -368,71 +370,31 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	  for (j=0; j<Nx; j++){
 	    F[0][j] = 0;
 	    G[0][j] = 1;
-	    F[1][j] = 0;
-	    G[1][j] = 1;
+		F[1][j] = 1;
+		G[1][j] = 1;
 	  }
-	  for (i=0; i<Ny; i++){
-	    F[i][0] = 0;
-	    G[i][0] = 1;
-	    F[i][1] = 0;
-	    G[i][1] = 1;
+	
+	  for(i=1; i<Ny-1; i++) {
 
-	    F[i][Nx-1] = 0;
-	    G[i][Nx-1] = 1;
-	    F[i][Nx-2] = 0;
-	    G[i][Nx-2] = 1;	
-	  }
-
-	  //1D shots. --Rolled into the next loop.
-	  /*	  for(i=1; i<Nx-1; i++){
-	    for(j=1; j<Ny-1; j++){
-	      V = ps_data_value(potential, i,j);//V[i][j]
-	      //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
-	      //Makes the upper solutions stable and oscillation free.
-	      //    if (i%2==1){
-		F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j]; 
-		G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j];
-		//     }
-	      //   if (i%2==0){
-	      //	F[i][j+1] = 2*F_coeff * G[i][j] * m_eff + F[i][j-1]; 
-	      //	G[i][j+1] = 2*G_coeff * F[i][j] * (V-E) + G[j][j-1];
-	      //      }
-	    }	    
-	    }*/
-	  
-        
-	  for(i=1; i<Ny; i++) {
-		// if (1 == i%2) {
-		    for(j=0; j<Nx-1; j++) {
+		    for(j=1; j<Nx-1; j++) {
 		     	V = ps_data_value(potential, i,j); //V[i][j]
+				// 5-point stencil in X and Y
+				F[i+1][j] = dx*dx*m_eff*G[i][j]  - F[i][j+1] - F[i][j-1] - F[i-1][j] + 4*F[i][j];
+				G[i+1][j] = 2*dx*dx*G_COEFF*(V-E)*F[i][j] - G[i][j+1] - G[i][j-1] - G[i-1][j] + 4*G[i][j];
+		    }
+			// For First and last point, Compute slope in x direction for F and G directly
 
-				// Compute coupled 2D difference equation advancing in column space
-				// F[i][j+1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
-				// G[i][j+1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);				
+			// F[x+3] = F[x] + 3h*F'[x] + (3h)^2/2!*F''[x]  (Taylor Expansion)
+			// F'[x] = 1/(12*h)*[-F[x+2] + 8*F[x+1] - 8*F[x-1] + F[x-2]]  (5-point stencil)
+			// F''[x] = 1/(12*h*h)*[-F[x+2] + 16*F[x+1] -30*F[x] +16*F[x+1] - F[x-2]] (5-point stencil)
+			G[i+1][j] = G[i+1][j-3] + 0.25*(-G[i+1][j-1] + 8*G[i+1][j-2] - 8*G[i+1][j-4] + G[i+1][j-5]) + 9.0/24.0*(-G[i+1][j-5] + 16*G[i+1][j-4] - 30*G[i+1][j-3] + 16*G[i+1][j-2] - G[i+1][j-1]);
+			F[i+1][j] = F[i+1][j-3] + 0.25*(-F[i+1][j-1] + 8*F[i+1][j-2] - 8*F[i+1][j-4] + F[i+1][j-5]) + 9.0/24.0*(-F[i+1][j-5] + 16*F[i+1][j-4] - 30*F[i+1][j-3] + 16*F[i+1][j-2] - F[i+1][j-1]);			
 
-				// These are the equations (F[x+1,y] - F[x,y]) + (F[x+1,y] - F[x+1, y-1])
-				F[i][j+1] = (F_coeff * G[i][j] * m_eff + F[i][j] + dx_dy*F[i-1][j+1])/(1+dx_dy); 
-				G[i][j+1] = (G_coeff * F[i][j] * (V-E) + G[i][j] + dx_dy*G[i-1][j+1])/(1+dx_dy);				
-				
-				// if (1 == i) {
-				// 	F[i-1][j] = F[i][j];
-				// 	G[i-1][j] = G[i][j];
-				// }
-
-		    }			
-		// } else {
-		//     for(j=Nx-1; j>0; j--) {
-		//      	V = ps_data_value(potential, i,j); //V[i][j]
-		// // 		// Compute coupled 2D difference equation retreating in column space
-		// 		// F[i][j-1] = F_coeff * G[i][j] * m_eff + F[i][j] - dx_dy*(F[i][j] - F[i-1][j]); 
-		// 		// G[i][j-1] = G_coeff * F[i][j] * (V-E) + G[i][j] - dx_dy*(G[i][j] - G[i-1][j]);				
-		// 	F[i][j-1] = (F_coeff * G[i][j] * m_eff + F[i][j] + dx_dy*F[i-1][j-1])/(1+dx_dy); 
-		// 	G[i][j-1] = (G_coeff * F[i][j] * (V-E) + G[i][j] + dx_dy*G[i-1][j-1])/(1+dx_dy);				
-		// 	}
-		// }
-		// Set initial conditions for next row
-		// F[i+1][j] = F[i][j];
-		// G[i+1][j] = G[i][j];
+			// F[x-3] = F[x] - 3h*F'[x] + (3h)^2/2!*F''[x]  (Taylor Expansion)
+			// F'[x] = 1/(12*h)*[-F[x+2] + 8*F[x+1] - 8*F[x-1] + F[x-2]]
+			// F''[x] = 1/(12*h*h)*[-F[x+2] + 16*F[x+1] -30*F[x] +16*F[x+1] - F[x-2]]
+			G[i+1][0] = G[i+1][3] - 0.25*(-G[i+1][5] + 8*G[i+1][4] - 8*G[i+1][2] + G[i+1][1]) + 9.0/24.0*(-G[i+1][5] + 16*G[i+1][4] - 30*G[i+1][3] + 16*G[i+1][2] - G[i+1][1]);
+			F[i+1][0] = F[i+1][3] - 0.25*(-F[i+1][5] + 8*F[i+1][4] - 8*F[i+1][2] + F[i+1][1]) + 9.0/24.0*(-F[i+1][5] + 16*F[i+1][4] - 30*F[i+1][3] + 16*F[i+1][2] - F[i+1][1]);			
 	  }
 	  //Why not just look at the change on the very last point? This definitely won't be representative, but it
 	  //might be useful during debugging.
@@ -459,6 +421,14 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	    // Add the solution to the list of bound states
 	    ps_list_add(solution_list, solution);
 
+		// Save the g solutions
+		PS_DATA g = ps_data_copy(potential);
+		ps_data_set_data(g, G);
+		PS_SOLUTION *gsolution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
+		gsolution->energy = E;
+		gsolution->wavefunction = g;
+		ps_list_add(g_solutions, gsolution);
+		
 	    // print a log message
         sprintf(log_message, "\tBoundstate number %d with E=%e found, F[Nx][Ny]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy/EV_TO_ERGS, F[Nx][Ny], F_threshold);
 	    ps_log(log_message);
@@ -556,8 +526,8 @@ PS_DATA test_potential_2D() {
 	double total_width_x = well_width_x + barrier_width_x + barrier_width_x;
 	double total_width_y = well_width_y + barrier_width_y + barrier_width_y;
 
-	int number_of_points_x = 200;
-	int number_of_points_y = 200;
+	int number_of_points_x = 100;
+	int number_of_points_y = 100;
 	
 	int xsize = number_of_points_x;
 	double xstep = total_width_x/((double)number_of_points_x); //total width converted to cm divided by the number of points = width per point
@@ -671,7 +641,7 @@ int main(int argc, char **argv) {
 	PS_SOLVE_PARAMETERS params;
 	params.energy_min = ps_data_min_value(potential);
 	params.energy_max = ps_data_max_value(potential);
-	params.n_iter = 100; // The number of energies to try
+	params.n_iter = 50; // The number of energies to try
 	double e_step = (params.energy_max - params.energy_min)/(params.n_iter);
 		
 	sprintf(msg,"Testing energies from %g to %g in %g increments\n",params.energy_min/EV_TO_ERGS,params.energy_max/EV_TO_ERGS,e_step/EV_TO_ERGS);
@@ -679,7 +649,8 @@ int main(int argc, char **argv) {
 	
 	// Create a list for solutions
 	PS_LIST solutions = ps_list_create();
-
+	g_solutions = ps_list_create();
+	
 	  // 1st pass coarse Solver
 	if (1 == solver) {
 		// 1d solver with coarse/fine pass
@@ -728,6 +699,15 @@ int main(int argc, char **argv) {
 	fclose(bsfile);
 	fclose(efile);
 
+	FILE *gfile = fopen("G.dat", "w");
+	s = ps_list_front(g_solutions);
+	while (s != NULL) {
+		ps_data_write_bin(s->wavefunction, gfile);
+		s = ps_list_next(g_solutions);
+	}
+	fclose(gfile);
+	ps_list_destroy_all(g_solutions);
+	
 	//clean up
 	ps_data_destroy(potential);
 	ps_list_destroy_all(solutions);
