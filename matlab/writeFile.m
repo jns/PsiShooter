@@ -7,8 +7,9 @@ else
     yLength=length(Y);
 end
 
-% X and Y must be in cm. 
-% data can be in ev or ergs to convert output to ergs
+% X and Y must be in nm. 
+% Data must be in eV
+
 conv = 1;
 if (strcmp(units, 'ev')) 
     conv = 1.60217646e-12;

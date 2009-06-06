@@ -13,14 +13,17 @@
  *     For many potentials electrons don't "see" much of the barriers compared to the wells, so m_eff(x,y) ~= m_eff_well_material 
  *     Maybe only support this case, it has a bunch less terms when you expand out the TISE with fintite differencing 
  *     note: A position dependant mass fucks up the hermicity of H (hamiltonian operator) 
+ * See if switching to units where hbar=1 and m=1/2 helps with the numerical error
  */
 
 void ps_log(char *msg) {
 	fprintf(stdout, msg);
+	return;
 }
 
 PS_LIST g_solutions;
 
+/*
 //
 // Solve for the bound energies given by the potential. 
 // energies is a buffer of energies to test.
@@ -89,30 +92,38 @@ PS_LIST g_solutions;
 	//
 	//The form in (13) can be rearranged so that you can use the shooting method. 
 	//
-	//Instead of proceeding directly with that we are going to first write the 
-	//orginal 2nd order differential equation (3) as a system of coupled ODEs
-	//(3)    Div * (M * Div * F) = 2*(V-E)*F/h_bar^2
+//Instead of proceeding directly with that we are going to first write the 
+//orginal 2nd order differential equation (3) as a system of coupled ODEs
+//(3)    Div * (1/m_eff * Div * F) = 2*(V-E)*F/h_bar^2
 //
+//Choose simplifying units, such as: 
+//     hbar = 1
+//     m_electron = 1/2  ...note: 1/m_eff = 1/(m_electron * m_relative) = 2/m_relative
+//
+//The equation in (3) becomes simpler:
+//    Div * (1/m_r * Div * F) = (V-E)*F
+//       ...note that m_relative has been shortened to m_r 
+// 
 //Let:  
-//(14)    G = (M) * Div * F
+//(14)    G = (1/m_r) * Div * F
 //Then (3) becomes:
-//(15)   Div * G = 2*(V-E)*F/h_bar^2
+//(15)   Div * G = (V-E)*F
 //
 //Rearranging (14) and (15) slightly:
 //      +--------------------------------------------------------------+
-//(16)  |             Div*F = G / M                                    |     !!! DONT BE FOOLED,  M = 1/m_eff (JNS)
-//(17)  |             Div*G = F * 2*(V-E)/h_bar^2                      |
+//(16)  |             Div*F = G * m_r                                  |
+//(17)  |             Div*G = F * (V-E)                                |
 //      +--------------------------------------------------------------+----> These are the useful equations the solver will implement
 //
 //Expanding (16) with finite differencing:
-//       Div*F = G/M
-//             = dF/dx + dF/dy = G/M
-//(18)         = (F[x+dx,y]-F[x-dx,y])/(2dx) + (F[x,y+dy]-F[x,y-dy])/(2dy) = G[x,y]/M[x,y]
+//       Div*F = G*m_r
+//             = dF/dx + dF/dy = G*m_r
+//(18)         = (F[x+dx,y]-F[x-dx,y])/(2dx) + (F[x,y+dy]-F[x,y-dy])/(2dy) = G[x,y]*m_r[x,y]
 //
 //Expanding (17) with finite differencing:
-//       Div*G = F * 2*(V-E)/h_bar^2
-//             = dG/dx + dG/dy = F * 2*(V-E)/h_bar^2
-//(19)         = (G[x+dx,y]-G[x-dx,y])/(2dx) + (G[x,y+dy]-G[x,y-dy])/(2dy) = F[x,y]*2*(V[x,y]-E)/h_bar^2
+//       Div*G = F * (V-E)
+//             = dG/dx + dG/dy = F * (V-E)
+//(19)         = (G[x+dx,y]-G[x-dx,y])/(2dx) + (G[x,y+dy]-G[x,y-dy])/(2dy) = F[x,y]*(V[x,y]-E)
 //
 //
 /////////////////////
@@ -129,43 +140,67 @@ PS_LIST g_solutions;
 //the intial value of G if we are starting deep enough inside a tall barrier.
 //
 //(21)   G[0,0] = 1    
-//Now, for the Feature Presentation:
-// To find the lowest (quasi)bound state we can solve the infinite square well
-// problem to get an upper bound on the energy.
-// The solution for a partible in an infinite square well is known to be:
-//(13) En = hbar^2*pi^2*n^2/(2*m*L^2)  ... where n=1 is the ground state
-// The infinite square well solutions are used as a guess to find boundstates in the 
-// finite wells
-PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
-
+//
+//additional FD notes:
+/////////////////////////////////////////////////////////////////////////////////////////		  
+//Consider three points on the x axis separated by distance "h" and indexed by "i" ... i.e. i-1, i, i+1  -->  x-h, x, x+h
+//The function F(x) has the values at those positions: F[i-1], F[i], F[i+1]
+//Taylor expand F(x) at the i-1 and the i+1 point:
+//(22)   F[i-1] = F[i] - dF/dx|i * h + d^2F/dx^2|i * h^2/2! - d^3F/dx^3|i * h^3/3 + ...
+//(23)   F[i+1] = F[i] + dF/dx|i * h + d^2F/dx^2|i * h^2/2! + d^3F/dx^3|i * h^3/3 + ...
+//        ...where  dF/dx|i means take the derivative with respect to x at point i
+//If you add (22) and (23) every other term in the expansions cancel, such that:
+//(24)   F[i-1] + F[i+1] = 2*F[i] + d^2F/dx^2|i * h^2 + d^4F/dx^4|i + ...
+//Rearrange (24) to put the seconcd derivative of F with respect to x on the LHS  
+//(25)   d^2F/dx^2|i = (F[i+1] - 2*F[i] + F[i-1]) / h^2  -  d^4F/dx^4|i + ...
+//Drop the higher order corrections b/c a second order finite differencing approx of d^2F/dx^2|i is all we should need
+//     +----------------------------------------------------------------+
+//(26) |  d^2F/dx^2|i = (F[i+1] - 2*F[i] + F[i-1]) / h^2 + O(h^2)       |
+//     +----------------------------------------------------------------+--------> 
+//The error contained in O(h^2) is of the order h^2 and therefore will be small.
+//BTW, subtracting (22) and (23) you can rearrange to get an accurate approx for dF/dx|i
+//     +---------------------------------------------------------+
+//(27) |       dF/dx|i = (F[i+1] - F[i-1]) / (2h) + O(h^2)       |
+//     +---------------------------------------------------------+--------> 
+*/
+PS_LIST ps_solve_1D(PS_DATA potential, PS_DATA effective_mass, PS_SOLVE_PARAMETERS *params) {
 	char log_message[256];
 	ps_log("PsiShooter -- a shooting method solver for the time independant Schrodinger equation under the effective mass approximation.\n");
-	
-    // This is a linked list for storing solutions
-	PS_LIST solution_list = ps_list_create();
-
 	ps_log("Iterate through Energy Eigenvalues to find the lowest bound state.\n");      
 	
+	PS_LIST solution_list = ps_list_create(); // This is a linked list for storing solutions
 
 	// wavefunction storage.  
 	int N = potential->xsize; // used for generating strings with sprintf for sending to ps_log
-//	double dx = potential->xstep; //cm, size of differential length (TODO: Compute this inside loop)
-	double dx = ps_data_dx_at(potential, 2); // 0 to 1 is wierd
-	// int N_threshold = 100; //point at which the threshold magnitude is taken. Its a kludgy way to do it, but for now its fine. To Do: Make this more general
+	//	double dx = potential->xstep; //cm, size of differential length (TODO: Compute dx inside loop)
+	double dx = ps_data_dx_at(potential, 2); // in case 0 to 1 is wierd, this will do 1 to 2	
+	
+	//sanity checks, the effective mass should be on the same grid as the potential
+	if(N != effective_mass->xsize) {
+		//problem
+		sprintf(log_message, "\tThat's wierd... there are %d elements in the x axis mesh for the potential, but %d elements in the effective mass x axis mesh. Check to make sure the files for potential and effective mass have the same mesh. \n", N, effective_mass->xsize);
+		ps_log(log_message);
+		return NULL;
+	}
+	if(dx != ps_data_dx_at(effective_mass, 2)) {
+		//more problems
+		sprintf(log_message, "\tThat's wierd... the step size for the potential x axis is %e nm, and the the step size for the effective mass x axis mesh is %e nm. They need the same meshes to work", dx, ps_data_dx_at(effective_mass, 2));
+		ps_log(log_message);
+		return NULL;
+	}
+	
 	double F[N]; //the envelope function (wavefunction)
-	double f_cache[params->n_iter]; // We cache the last value of the envelope for each solution
+	double F_endpoint[params->n_iter]; // We save the last value of the envelope for each solution
 	double G[N]; //the aux function
 	
 	//F
-	//intial eqn                 -->  Div*F = G/M	
+	//intial eqn                 -->  Div*F = G*m_r	
 	//convert to finite diff eqn -->  (F[x+dx,y]-F[x-dx,y])/(2dx) + (F[x,y+dy]-F[x,y-dy])/(2dy) = G[x,y]/M[x,y]	
 	//convert to 1D              -->  (F[x+dx]-F[x-dx])/(2dx) = G[x]/M[x]	
 	//rearrange                  -->  F[x+dx] = (2dx)*G[x]/M[x] + F[x-dx]
 	//convert to c style         -->  F[i+1] = (2dx)*G[i]*m[i] + F[i-1]
 	//                                F[i+1] = F_coeff*G[i]*m[i] + F[i-1]
-	double F_coeff = dx; //handy prefactor that would otherwise be for every point evaluated
-	//from dx to 2*dx jh sometime in may
-	
+	double F_coeff = 2*dx; //handy prefactor that would otherwise be for every point evaluated
 	
 	//G
 	//intial eqn                 -->  Div*G = F * 2*(V-E)/h_bar^2
@@ -174,32 +209,34 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	//rearrange                  -->  G[x+dx] = (2dx)*F[x]*2*(V[x]-E)/h_bar^2 + G[x-dx]
 	//convert to c style         -->  G[i+1] = 4*dx/hbar^2 * F[i]*(V[i]-E) + G[i-1]
 	//                                G[i+1] = G_coeff * F[i]*(V[i]-E) + G[i-1]
-//	double G_coeff = 2*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
-	//from 4*dx to 2*dx jh sometime in may
-
-	double G_coeff = 2*dx*G_COEFF; // Redefined to use M_ELECTRON/HBAR^2 using assuming units of nm and eV
+    //double G_coeff = 4*dx/(HBAR_PLANCK_SQ); //handy prefactor that would otherwise be computed for every point evaluated 
+	double G_coeff = 4*dx*G_COEFF; // Redefined to use M_ELECTRON/HBAR^2 using assuming units of nm and eV
     
 	int bound_state_count = 0;	
-	int threshold_set_flag = 0; 
-	double F_threshold = 0;
 	int i, iter;
 	double E = params->energy_min;
 	double Estep = (params->energy_max - params->energy_min)/(params->n_iter); 
-	double V; //meV, Current potential
-//	double m_eff = MASS_ELECTRON*M_EFF_GAAS;// To Do: make the electron mass be part of the structure that we are simulating. i.e. in general it can be a position dependant quantity just like the potential (think heterostructures with different band edge curvatures)
-	double m_eff = M_EFF_GAAS;
+	double V; //eV, Current potential
+	double m_eff; 
 	
 	for (iter = 0; iter < params->n_iter; iter++) {
+
+		//initial conditions
+		F[0] = 0;
+		G[0] = 1;
+		F[1] = F_coeff * G[0] * m_eff + 0;    
+		G[1] = G_coeff * F[0] * (V-E) + G[0]; 
 		
-	  //initial conditions
-	  F[0] = 0;
-	  G[0] = 1;
-	  F[1] = 0;
-	  G[1] = 1;
-        
-	  for(i=1; i<N-1; i++) {
-	    V = ps_data_value(potential, 0,i); //V[i]
-	    //Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
+		for(i=1; i<N; i++) {
+			V = ps_data_value(potential, 0,i); //V[i]
+			m_eff = ps_data_value(effective_mass, 0,i); //m_eff[i]
+			
+			//Lets eliminate bad solutions by checking if the forward and backwards solutions overlap
+			F[i+1] = F_coeff * G[i] * m_eff + F[i-1];  //subbed in m_eff for m[i], To Do: support a position dependant
+			G[i+1] = G_coeff * F[i] * (V-E) + G[i-1];	 // mass by storing different masses at different locations (add to the PS_DATA structure probably)		
+		  
+		  /*  
+		//Mix the bidirectional and forward derivatives to prevent two seperate solutions from forming. This
 	    //Makes the upper solutions stable and oscillation free. (Probably only required on the i==1 index -jns) 
 		// TODO compare results of this branching statement with IF (1==i) ... ELSE ...
 	    if (i%2==1){
@@ -214,41 +251,68 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	      // mass by storing different masses at different locations (add to the PS_DATA structure probably)
 	      G[i+1] = 2*G_coeff * F[i] * (V-E) + G[i-1];
 	    }
-	  }
-	  f_cache[iter] = F[N-1];
+		 */
+		}
+		F_endpoint[iter] = F[N-1]; //store the last point of the solution in an array, use this to bracket roots by looking for sign changes (zero crossings)
 		
-	  // Consider removing this for speed
-	  //         sprintf(log_message, "\tE=%g eV\tF[N-1]=%g\n", E/EV_TO_ERGS, F[N-1]);
-	  // ps_log(log_message);
-		
-	  //Try to detect which solutions are eigen states (bound states)
-	  if((iter > 0) && ((f_cache[iter] > 0 && f_cache[iter-1] < 0) || (f_cache[iter] < 0 && f_cache[iter-1] > 0))) { 
-	    //if there was a change in sign between the last point of the prev
-	    // and current envelope function then there was a zero crossing and there a solution
-	    // test for a sign crossing
+		//Try to detect which solutions are eigen states (bound states)
+		if((iter > 0) && 
+				((F_endpoint[iter] > 0 && F_endpoint[iter-1] < 0) || 
+				 (F_endpoint[iter] < 0 && F_endpoint[iter-1] > 0)))
+		{ 
+			/*
+			 
+			//if there was a change in sign between the last point of the prev and current envelope function then there probably was a zero crossing and there a solution test for a sign crossing
+			//in order to reject solutions that appear to just be amplified/oscillating numerical error run
+			//shoot solutions backwards to see if you get basically the same enevelope function. If they really
+			//are just amplified error then the shots will look like this:
+			// forwards:  ----.'.'.       increasing amplitude in this direcion--> 
+			// backwards: .'.'.----    <--increasing amplitude in this direcion
+			F[N] = 0;
+			G[N] = 1;
+			F[N-1] = F_coeff * G[0] * m_eff + 0;   
+			G[N-1] = G_coeff * F[0] * (V-E) + G[0];
 
-	    PS_DATA wavefunction = ps_data_copy(potential); // copy the potential
-	    ps_data_set_data(wavefunction, F); // Overwrite the potential with the wavefunction
+			//Lets eliminate bad solutions by checking if the forward and backwards solutions overlap
+			for(i=N-1; i>0; i--) {
+				V = ps_data_value(potential, 0,i); //V[i]
+				F[i-1] = F[i+1] - F_coeff * G[i] * m_eff;  //subbed in m_eff for m[i], To Do: support a position dependant
+				G[i-1] = G[i+1] + G_coeff * F[i] * (E-V);	 // mass by storing different masses at different locations (add to the PS_DATA structure probably)				
+			}
 			
-	    PS_SOLUTION *solution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
-	    solution->energy = E;
-	    solution->wavefunction = wavefunction;
+			//ToDo:
+			//see if the overlap is about unity.
 			
-	    // Add the solution to the list of bound states
-	    ps_list_add(solution_list, solution);
+			 */
+			
+			
+			
+			
+			// Add the solution to the list of bound states
+			PS_DATA wavefunction = ps_data_copy(potential); // copy the potential to get the x,y coordinate stuff and sizes
+			ps_data_set_data(wavefunction, F); // Overwrite the potential with the wavefunction
+			PS_SOLUTION *solution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
+			solution->energy = E;
+			solution->wavefunction = wavefunction;
+			ps_list_add(solution_list, solution);
+			bound_state_count++;
+			
+			// print a log message
+			sprintf(log_message, "\tBoundstate number %d with E=%e found, F[N]=%e\n", bound_state_count, solution->energy, F[N]);
+			ps_log(log_message);
+		}
 
-	    // print a log message
-            sprintf(log_message, "\tBoundstate number %d with E=%e found, F[N]=%e < F_threshold=%e\n", ++bound_state_count, solution->energy, F[N], F_threshold);
-	    ps_log(log_message);
-	  }
-
-	  // Increment the energy
-	  E += Estep;
+		// Consider removing this for speed
+		//  sprintf(log_message, "\tE=%g eV\tF[N-1]=%g\n", E, F[N-1]);
+		// ps_log(log_message);
+			  	
+		E += Estep; // Increment the energy
 	}    	
 	
 	return solution_list;
 }
 
+/*
 //
 //The 2D version of the solving engine.
 //
@@ -274,7 +338,7 @@ PS_LIST ps_solve_1D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 //    j = 0    or    i = 0, 1, 2, ..,L
 //    j = J    or    i = J(L+1), J(L+1)+1, J(L+1)+2, ...,J(L+1)+L
 //    l = 0    or    i = 0, (L+1), 2(L+1), ..., J(L+1)
-//    l = L    or    i = L, (L+1)+L, 2(L+1)+L, ..., J(L+1)+L
+//    l = L    or    i = L, (L+1)+L, 2(L+1)+L, ..., J(L+1)+L         */
 PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	
 	char log_message[256];
@@ -290,7 +354,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	int Ny = potential->ysize; // used for generating strings with sprintf for sending to ps_log
 	
 	//	double dx = potential->xstep; //cm, size of differential length 
-	//(TODO: Compute this inside loop in order to support meshes with non-uniform differential steps)
+	//(TODO: Compute dx inside loop in order to support meshes with non-uniform differential steps)
 	double dx = ps_data_dx_at(potential, 2); 
 	double dy = ps_data_dy_at(potential, 2); // 0 to 1 is wierd, maybe. 
 	double dx_dy = dx/dy; 
@@ -412,7 +476,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 	    // test for a sign crossing
 
 	    PS_DATA wavefunction = ps_data_copy(potential); // copy the potential
-	    ps_data_set_data(wavefunction, F); // Overwrite the potential with the wavefunction
+	    ps_data_set_data(wavefunction, (double*)F); // Overwrite the potential with the wavefunction
 			
 	    PS_SOLUTION *solution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
 	    solution->energy = E;
@@ -423,7 +487,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 
 		// Save the g solutions
 		PS_DATA g = ps_data_copy(potential);
-		ps_data_set_data(g, G);
+		ps_data_set_data(g, (double*)G);
 		PS_SOLUTION *gsolution = (PS_SOLUTION*)malloc(sizeof(PS_SOLUTION));
 		gsolution->energy = E;
 		gsolution->wavefunction = g;
@@ -442,7 +506,7 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 }
 
 
-//
+/*
 // Generates a test potential. Not really a permenant feature, but rather its 
 // something I intend to use in order to do some useful solver engine work 
 // while the generation of potentials from files/user input is up in air.
@@ -457,17 +521,17 @@ PS_LIST ps_solve_2D(PS_DATA potential, PS_SOLVE_PARAMETERS *params) {
 //                   |   |    
 //                   |   |        
 // V=0               |___|    
-// Region:      1      2     3  
+// Region:      1      2     3      */
 PS_DATA test_potential_1D() {
 	//For convience of trying different scenarios the test potential is defined here in terms of nanometers * cm/nm
-	double well_width = 10; // * 1e-7; //nm * cm/nm = cm, region 2
-	double barrier_width = 10; // * 1e-7; //nm * cm/nm , regions 1 and 3
+	double well_width = 10; // nm, region 2
+	double barrier_width = 10; // nm, regions 1 and 3
 	int number_of_points = 1000;
 	 
 	int xsize = number_of_points;
 	double xstep = (well_width + barrier_width + barrier_width)/((double)number_of_points); //total width converted to cm divided by the number of points = width per point
 	int ysize = 1; //1D for now so only 1 "row"
-	double Vb = 0.5; //*EV_TO_ERGS; // eV barrier
+	double Vb = 0.5; // eV barrier
 	
 	PS_DATA potential = ps_data_create(xsize, ysize);
 	potential->xstep = xstep; // This is temporary.  Jere and I have changed the file format to support non-uniform rectilinear grids
@@ -491,6 +555,8 @@ PS_DATA test_potential_1D() {
 	return potential;	
  }
 
+
+/*
 //
 // Generates a test potential. Not really a permenant feature, but rather its 
 // something I intend to use in order to do some useful solver engine work 
@@ -517,6 +583,7 @@ PS_DATA test_potential_1D() {
 //              
 // Region 1: V=Vb
 // Regoin 0: V=0
+*/
 PS_DATA test_potential_2D() {
 	//For convience of trying different scenarios the test potential is defined here in terms of nanometers * cm/nm
 	double well_width_x = 10; // * 1e-7; //nm * cm/nm = cm, region 2
@@ -581,11 +648,13 @@ int main(int argc, char **argv) {
 
 	char msg[256];
 	PS_DATA potential;
-	int solver;
+	PS_DATA effective_mass;
+	int solver_dimension;
 	PS_SOLUTION *s;
 	
 	if (1 == argc) {
-
+		solver_dimension = 1;
+		
 		sprintf(msg, "No file specified. Using builtin potential.\n");
 		ps_log(msg);
 		//get a 1D test potential
@@ -594,57 +663,68 @@ int main(int argc, char **argv) {
 		FILE *f = fopen("V_2d.dat", "w");
 		ps_data_write_bin(potential, f);
 		fclose(f);
-		solver = 2;
+		
 	} 
-	else if (2 == argc) {
+	else if (3 == argc) {
+		solver_dimension = 1;
+		
 		// Interpret argument as file to process
-
-		FILE *infile = fopen(argv[1], "r");
-		if (infile == NULL) {
+		FILE *infile_potential = fopen(argv[1], "r");
+		if (infile_potential == NULL) {
 			sprintf(msg, "Error opening file '%s'\n", argv[1]);
 			ps_log(msg);
-			
-			return PS_ERROR_FILE_NOT_FOUND;  // Exit abnormally
-			
+			return PS_ERROR_FILE_NOT_FOUND;  // Exit abnormally			
 		} else {
 			sprintf(msg, "Using potential from file '%s'\n", argv[1]);
 			ps_log(msg);
-
-			potential = ps_data_read_bin(infile);
-			fclose(infile);
-			solver = 1;
+			potential = ps_data_read_bin(infile_potential);
+			fclose(infile_potential);
 		}
+		
+		FILE *infile_mass = fopen(argv[2], "r");
+		if (infile_mass == NULL) {
+			sprintf(msg, "Error opening file '%s'\n", argv[2]);
+			ps_log(msg);			
+			return PS_ERROR_FILE_NOT_FOUND;  // Exit abnormally
+			
+		} else {
+			sprintf(msg, "Using effective mass from file '%s'\n", argv[2]);
+			ps_log(msg);			
+			effective_mass = ps_data_read_bin(infile_mass);
+			fclose(infile_mass);
+			solver_dimension = 1;
+		}		
 	} 
-	else if (3 == argc) {
-		// lets say that if there is a third argument, it is a 2d request.
-                //Interpret argument as file to process
-
+	else if (4 == argc) {
+		// lets say that if there is a 4th argument, it is a 2d request.
+		// Interpret argument as file to process
 		FILE *infile = fopen(argv[1], "r");
 		if (infile == NULL) {
 			sprintf(msg, "Error opening file '%s'\n", argv[1]);
 			ps_log(msg);
-			
 			return PS_ERROR_FILE_NOT_FOUND;  // Exit abnormally
-			
 		} else {
 			sprintf(msg, "Using *2D* potential from file '%s'\n", argv[1]);
 			ps_log(msg);
-
 			potential = ps_data_read_bin(infile);
 			fclose(infile);
-			solver = 2;
+			solver_dimension = 2;
 		}
-        }
-
+	}
+	else {
+		//unrecognized combination of arguements. Show usage.
+		sprintf(msg, "Arguements not understood. Usage:\npsi_shooter potential_file.in effective_mass_file.in\n");
+		ps_log(msg);
+	}
 
 	// Setup solution parameters
 	PS_SOLVE_PARAMETERS params;
 	params.energy_min = ps_data_min_value(potential);
 	params.energy_max = ps_data_max_value(potential);
-	params.n_iter = 50; // The number of energies to try
+	params.n_iter = 100; // The number of energies to try
 	double e_step = (params.energy_max - params.energy_min)/(params.n_iter);
 		
-	sprintf(msg,"Testing energies from %g to %g in %g increments\n",params.energy_min/EV_TO_ERGS,params.energy_max/EV_TO_ERGS,e_step/EV_TO_ERGS);
+	sprintf(msg,"Testing energies from %g to %g in %g increments\n", params.energy_min/EV_TO_ERGS, params.energy_max/EV_TO_ERGS, e_step/EV_TO_ERGS);
 	ps_log(msg);
 	
 	// Create a list for solutions
@@ -652,9 +732,9 @@ int main(int argc, char **argv) {
 	g_solutions = ps_list_create();
 	
 	  // 1st pass coarse Solver
-	if (1 == solver) {
+	if (1 == solver_dimension) {
 		// 1d solver with coarse/fine pass
-		PS_LIST coarse_solutions = ps_solve_1D(potential, &params);	
+		PS_LIST coarse_solutions = ps_solve_1D(potential, effective_mass, &params);	
 		 // For each solution, do a second pass with finer grained energy steps
 		 s = ps_list_front(coarse_solutions);
 		 while (s != NULL) {
@@ -665,7 +745,7 @@ int main(int argc, char **argv) {
 		   params.n_iter = 100;
 
 		   // Add the fine grain solutions to the final list
-		   PS_LIST e_solutions = ps_solve_1D(potential, &params);
+		   PS_LIST e_solutions = ps_solve_1D(potential, effective_mass, &params);
 		   ps_list_add_all(solutions, e_solutions);
 		   ps_list_destroy(e_solutions); // Destroy the list without destroying the data.
 

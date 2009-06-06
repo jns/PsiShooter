@@ -18,6 +18,7 @@ typedef struct {
 
 typedef PS_DATA_T* PS_DATA;
 
+//fast accessor function for data
 #define ps_data_value(ps_data,r,c) (ps_data->data[ps_data->xsize*r + c])
 
 /** Create and destroy functions **/
